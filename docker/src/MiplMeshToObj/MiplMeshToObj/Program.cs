@@ -12,6 +12,7 @@ namespace MiplMeshToObj
 				if (args.Length < 3 || args[0] == "--help" || args[0] == "-h")
 				{
 					PrintUsage();
+					return;
 				}
 
 				string miplMeshPath = args[0];

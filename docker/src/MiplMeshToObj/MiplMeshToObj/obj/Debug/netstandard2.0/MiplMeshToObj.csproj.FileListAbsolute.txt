@@ -1,9 +1,0 @@
-C:\Users\Jon\Documents\mipl-mesh-converter\src\MiplMeshToObj\MiplMeshToObj\bin\Debug\netstandard2.0\MiplMeshToObj.deps.json
-C:\Users\Jon\Documents\mipl-mesh-converter\src\MiplMeshToObj\MiplMeshToObj\bin\Debug\netstandard2.0\MiplMeshToObj.dll
-C:\Users\Jon\Documents\mipl-mesh-converter\src\MiplMeshToObj\MiplMeshToObj\obj\Debug\netstandard2.0\MiplMeshToObj.csprojAssemblyReference.cache
-C:\Users\Jon\Documents\mipl-mesh-converter\src\MiplMeshToObj\MiplMeshToObj\obj\Debug\netstandard2.0\MiplMeshToObj.csproj.CoreCompileInputs.cache
-C:\Users\Jon\Documents\mipl-mesh-converter\src\MiplMeshToObj\MiplMeshToObj\obj\Debug\netstandard2.0\MiplMeshToObj.AssemblyInfoInputs.cache
-C:\Users\Jon\Documents\mipl-mesh-converter\src\MiplMeshToObj\MiplMeshToObj\obj\Debug\netstandard2.0\MiplMeshToObj.AssemblyInfo.cs
-C:\Users\Jon\Documents\mipl-mesh-converter\src\MiplMeshToObj\MiplMeshToObj\bin\Debug\netstandard2.0\MiplMeshToObj.pdb
-C:\Users\Jon\Documents\mipl-mesh-converter\src\MiplMeshToObj\MiplMeshToObj\obj\Debug\netstandard2.0\MiplMeshToObj.dll
-C:\Users\Jon\Documents\mipl-mesh-converter\src\MiplMeshToObj\MiplMeshToObj\obj\Debug\netstandard2.0\MiplMeshToObj.pdb
