@@ -24,7 +24,7 @@ RUN \
     && apt install -y git ca-certificates curl libstdc++ imagemagick xvfb \
     && mkdir /osg \
     && cd /osg \
-    && git clone https://github.com/openscenegraph/OpenSceneGraph.git \
+    && git clone https://github.com/openscenegraph/OpenSceneGraph.git . \
     && git checkout OpenSceneGraph-3.4 \
     && git pull \
     && mkdir build \
