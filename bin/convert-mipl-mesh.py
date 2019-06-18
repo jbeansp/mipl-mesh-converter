@@ -5,6 +5,7 @@ import sys
 import argparse
 import subprocess
 
+
 def parseArgv():
 	parser = argparse.ArgumentParser(description="Convert a MIPL .pfb or .iv mesh for MER or MSL to .obj format.  ", 
 		epilog="E.g., convert-mipl-mesh.py --develop --updatetestserver --staging --merb --windows --overwrite-patcher " + \

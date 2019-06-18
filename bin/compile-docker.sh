@@ -1,3 +1,3 @@
 #!/bin/sh
 
-docker build ../docker -t mipl-mesh-converter 
+docker build ../docker -t mipl-mesh-converter
