@@ -1,0 +1,135 @@
+#!/bin/bash
+
+
+
+#input a terrain mesh directory, and will make a directory containing processed obj/mtl s.
+
+if [ $# -ne 2 ] || [ $1 = "-h" ] ; then
+	echo "Usage:  pfb2Obj <pfb file path> <obj file path>"
+	echo ""
+	echo "This will convert the pfb to obj/mtl using openscenegraph osgcov."
+	echo "But since that sometimes stalls, this script monitors it, and kills"
+	echo "and restarts the process if necessary."
+	exit 0
+fi
+
+function clean_up_semaphores {
+
+	#clean up semaphores
+	#delete the ones created by this user whose mod times are more recent than the time we began this script
+	#also delete any that are more than 2hours old
+	semlist=$(ipcs -s -t)
+	OIFS="${IFS}"
+	NIFS=$'\n'
+	IFS="${NIFS}"
+	for line in ${semlist} ; do
+	        id=`expr "$line" :  "^\([0-9]*\)\s*${USER}.*"`
+	 	echo $id;
+	        timetag=`expr "$line" :  ".*${USER}.*\([a-zA-Z][a-zA-Z][a-zA-Z]\s[a-zA-Z][a-zA-Z][a-zA-Z]\s*[0-9]*\s[0-9][0-9]:[0-9][0-9]:[0-9][0-9]\s20[0-9][0-9]\)"`
+		echo $timetag 
+	        if [[ "$id" != "" ]] ; then
+	                secs=$(date --date="${timetag}" +%s)  #get the date returned as a total num secs since 1970
+	                if [ $secs -gt $startsecs ] ; then
+	                        ipcrm -s ${id}
+				echo "removing ${id}"
+	                fi
+			diff=$((startsecs-secs)) #diff between the creation time of the semaphore and when this script started
+                        if [ $diff -gt 7200 ] ; then
+                                ipcrm -s ${id}
+                                echo "removing ${id}"
+                        fi
+	        fi
+
+	done
+	IFS="${OIFS}"
+}
+
+
+#to clean up semaphores from building up, keep track of the time, so know which ones are ours
+startsecs=$(date +%s) #the time in secs since 1970
+
+
+pfbFile=$1
+objFile=$2
+
+osgoptions=""
+timeout=70
+
+#Note, the below doesn't help this error:
+#PF Fatal/Resource:             pfMalloc() Unable to allocate 560000 bytes from arena 0xa75ff000.
+#If using the libpf shared memory arena,
+#try using a filesystem bigger than (262144.00Kbytes).
+#Use the PFTMPDIR environment variable or pfTmpDir
+
+#This error is because pf has a cap of 260MB on the memory allocation.  The only way around is to use a c fuction to set it higher, and recompile. pfSharedArenaSize()
+
+#export PFTMPDIR="/ViewpointFilesystem/data"
+
+#before we start, kill old instances of osgconv to prevent conflicts
+killall osgconv
+
+#need to cd to the .rgb directory so that we avoid warnings that it can't find the .rgb files
+#.rgb files are listed without full path, so must be in same directory
+ossDir=$(dirname ${pfbFile})
+cd $ossDir
+
+if [ -e $objFile ] ; then
+    echo "WARNING: $objFile already exists. Overwriting."
+fi
+
+export OSG_OPTIMIZER="REMOVE_REDUNDANT_NODES"
+export OSG_NOTIFY="DEBUG"
+
+#for virtualgl, so it doesn't look at a vnc display
+#DISPLAY=:0  #viewpoint asu (old)
+#DISPLAY=:1   #google
+
+#performer options
+#set pfSharedArenaSize, default is 256kb, but this is sometimes not enough
+#from sgi archive of info-performer mailing list, topic Re: our of semaphore memory
+export PFSHAREDSIZE=500000000
+#export PFSEMASIZE=2000000000
+export PFNFYLEVEL=7
+
+#command="/opt/VirtualGL/bin/vglrun osgconv ${osgoptions} $pfbFile $objFile"
+command="xvfb-run osgconv ${osgoptions} $pfbFile $objFile"
+# starting timer in subshell. It sends a SIGUSR1 to the father if it timeouts.
+#export TIMEOUT=10
+#(sleep $TIMEOUT ; kill -SIGUSR1 $PID) &
+#run the command
+    clean_up_semaphores
+    ${command} &
+id=$!
+for t in 0 1 2 3 4 5 6 7 8 9 ; do
+    sleep $timeout
+    psout=$( ps -p ${id} | grep -vc "TIME CMD")
+    #echo $( ps -p ${id})
+    echo "Waiting $t"
+    #echo $psout
+    if [ $psout -eq 0 ] ; then break ; fi
+done
+
+while [ $psout -gt 0 ] ; do
+    echo "Sending SIGTERM to process # $id and restarting."
+    echo "$command"
+    kill $id
+    clean_up_semaphores
+    #restart the command
+    ${command} &
+    id=$!
+    for t in 0 1 2 3 4 5 6 7 8 9 ; do
+        sleep $timeout
+        psout=$( ps -p ${id} | grep -vc "TIME CMD")
+        #echo $( ps -p ${id})
+        echo "Waiting $t"
+        echo $psout
+        if [ $psout -eq 0 ] ; then break ; fi
+    done
+done
+
+num=$(( $num+1 ))
+
+clean_up_semaphores
+
+exit 0
+
