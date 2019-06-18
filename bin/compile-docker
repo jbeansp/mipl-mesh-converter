@@ -2,4 +2,4 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
-docker build $DIR/docker -t mipl-mesh-converter
+docker build $DIR/../docker -t mipl-mesh-converter
