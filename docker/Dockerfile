@@ -45,8 +45,10 @@ FROM converter-base AS converter
 # ARG OUTPUT_DIR="/output"
 # ENV OUTPUT_DIR=${OUTPUT_DIR}
 
-COPY docker/bin app
-COPY docker/src /temp/src
+WORKDIR /
+
+COPY bin app
+COPY src temp/src
 
 RUN \
     rm -Rf /app/monoexe \
@@ -54,6 +56,5 @@ RUN \
 	&& MONO_IOMAP=case msbuild /temp/src/MiplMeshToObj/MiplMeshToObj.sln /p:OutputPath=/app/monoexe \
 	&& rm -Rf /temp/src
 
-#MiplMeshToObj will look in $INPUT_DIR for mipl_mesh_filename, and write the obj to $OUTPUT_DIR
 ENTRYPOINT [ "mono", "--debug", "/app/monoexe/MiplMeshToObj.exe" ]
 CMD [ "/path/to/mipl_mesh_filename", "/directory/to/write/obj", "rover: MSL | MER" ]
