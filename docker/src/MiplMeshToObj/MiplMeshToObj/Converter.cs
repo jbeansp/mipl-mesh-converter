@@ -224,7 +224,15 @@ namespace MiplMeshToObj
 				foreach (XElement firstGroupElement in matrixTransformElement.Element("Children").Elements("osg--Group").ToArray())
 				{
 					Logger.Log("firstGroupElement");
-					foreach (XElement secondGroupElement in firstGroupElement.Element("Children").Elements("osg--Group").ToArray())
+					XElement parent = firstGroupElement;
+					XElement firstGroupElementMatrixTransformElement = parent.Element("osg--MatrixTransform");
+					while (firstGroupElementMatrixTransformElement != null)
+					{
+						Logger.Log("found another matrixTransformElement");
+						parent = firstGroupElementMatrixTransformElement;
+						firstGroupElementMatrixTransformElement = parent.Element("osg--MatrixTransform");
+					}
+					foreach (XElement secondGroupElement in parent.Element("Children").Elements("osg--Group").ToArray())
 					{
 						Logger.Log("secondGroupElement");
 						//Abort this if it's empty.  Check the number of geometry sections
@@ -343,6 +351,7 @@ namespace MiplMeshToObj
 
 				foreach (XElement firstGroupElement in matrixTransformElement.Element("Children").Elements("osg--Group").ToArray())
 				{
+
 					foreach (XElement secondGroupElement in firstGroupElement.Element("Children").Elements("osg--Group").ToArray())
 					{
 						//Abort this if it's empty.  Check the number of geometry sections
