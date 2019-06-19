@@ -278,15 +278,33 @@ namespace MiplMeshToObj
 									continue;
 								}
 
-								foreach (XElement fourthGroupElement in thirdGroupElement.Element("Children").Elements("osg--Group").ToArray())
+								//MER osgx files have osg--LOD sections as the 3rd level, MSL skips those.
+								XElement[] lods2;
+								XElement[] testLods2 = thirdGroupElement.Element("Children").Elements("osg--LOD").ToArray();
+								if (testLods.Length > 0)
 								{
-									Logger.Log("fourthGroupElement");
-									//This group element has the texture name. grab it.
-									string t = fourthGroupElement.Element("Name").Attribute("attribute").Value.Replace("&quot;", "").Replace("\"", "").TrimStart(new char[] { '_' });
-									if (!textureBasenames.Contains(t))
+									Logger.Log("setting lods to osg--LOD children");
+									lods2 = testLods2;
+								}
+								else
+								{
+									//if no LODs, make a placeholder lod array just containing the second group element
+									Logger.Log("setting lods to secondGroupElement");
+									lods2 = new XElement[] { thirdGroupElement };
+								}
+
+								foreach (XElement lodElement2 in lods2)
+								{
+									foreach (XElement fourthGroupElement in lodElement2.Element("Children").Elements("osg--Group").ToArray())
 									{
-										Logger.Log("Texture: {0}", t);
-										textureBasenames.Add(t);
+										Logger.Log("fourthGroupElement");
+										//This group element has the texture name. grab it.
+										string t = fourthGroupElement.Element("Name").Attribute("attribute").Value.Replace("&quot;", "").Replace("\"", "").TrimStart(new char[] { '_' });
+										if (!textureBasenames.Contains(t))
+										{
+											Logger.Log("Texture: {0}", t);
+											textureBasenames.Add(t);
+										}
 									}
 								}
 							}
@@ -295,6 +313,9 @@ namespace MiplMeshToObj
 
 					}
 				}
+
+
+
 
 				Logger.Log("Found {0} texture names", textureBasenames.Count);
 
