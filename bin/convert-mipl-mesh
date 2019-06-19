@@ -11,9 +11,9 @@ def parseArgv():
 		epilog="E.g., convert-mipl-mesh.py --develop --updatetestserver --staging --merb --windows --overwrite-patcher " + \
 		"-c -v auto -p previous current -o --run-on-osx-only -l 100")
 
-	parser.add_argument("-m", "--mipl-mesh-path", metavar=('MIPL_MESH_PATH', required=True, help="The path of the mipl mesh to convert.")
+	parser.add_argument("-m", "--mipl-mesh-path", metavar=('MIPL_MESH_PATH'), required=True, help="The path of the mipl mesh to convert.")
 
-	parser.add_argument("-d", "--output-directory", metavar=('OUTPUT_DIR', required=True, help="The directory to write the obj file to.")
+	parser.add_argument("-d", "--output-directory", metavar=('OUTPUT_DIR'), required=True, help="The directory to write the obj file to.")
 
 	rovergroup = parser.add_mutually_exclusive_group(required=True)
 	rovergroup.add_argument("--mer", action="store_true")
