@@ -50,7 +50,6 @@ C:\Users\Jon\source\repos\MiplMeshToObj\MiplMeshToObj\obj\Debug\MiplMeshToObj.pd
 C:\Users\Jon\Documents\mipl-mesh-converter\docker\bin\monoexe\MiplMeshToObj.exe.config
 C:\Users\Jon\Documents\mipl-mesh-converter\docker\bin\monoexe\MiplMeshToObj.exe
 C:\Users\Jon\Documents\mipl-mesh-converter\docker\bin\monoexe\MiplMeshToObj.pdb
-C:\Users\Jon\Documents\mipl-mesh-converter\docker\src\MiplMeshToObj\MiplMeshToObj\obj\Debug\MiplMeshToObj.csprojAssemblyReference.cache
 C:\Users\Jon\Documents\mipl-mesh-converter\docker\src\MiplMeshToObj\MiplMeshToObj\obj\Debug\MiplMeshToObj.csproj.CoreCompileInputs.cache
 C:\Users\Jon\Documents\mipl-mesh-converter\docker\src\MiplMeshToObj\MiplMeshToObj\obj\Debug\MiplMeshToObj.csproj.CopyComplete
 C:\Users\Jon\Documents\mipl-mesh-converter\docker\src\MiplMeshToObj\MiplMeshToObj\obj\Debug\MiplMeshToObj.exe

@@ -52,7 +52,10 @@ namespace MiplMeshToObj
 			Logger.Log($"Creating a config file with default values: {configPath}");
 			Configuration configuration = new Configuration();
 			string text = JsonConvert.SerializeObject(configuration, Newtonsoft.Json.Formatting.Indented);
-			Logger.Log($@"{text}");
+			Logger.Log(configuration.PfbToObj);
+			Logger.Log(configuration.PfbToOsgx);
+			Logger.Log(configuration.ConvertRgb);
+			Logger.Log(System.String.Format("{0}", text));
 			File.WriteAllText(configPath, text);
 		}
 		
