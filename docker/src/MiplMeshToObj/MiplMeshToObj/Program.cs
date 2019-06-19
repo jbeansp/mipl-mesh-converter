@@ -57,7 +57,7 @@ namespace MiplMeshToObj
 
 				converter.ProcessMeshAsync(inputInfo).GetAwaiter().GetResult();
 
-				Logger.Log("Done running MiplMeshToObj.");
+				Logger.Log("Done running MiplMeshToObj");
 			}
 			catch (Exception e)
 			{

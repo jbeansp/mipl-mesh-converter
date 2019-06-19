@@ -71,6 +71,6 @@ if __name__ == '__main__':
 
 	print("Processing %s, and writing obj to %s" % (miplMeshPath, outputDirectory))
 
-	subprocess.call(['docker', 'run', '-it', '--mount', inputMountString, '--mount', outputMountString, dockerImage, dockerInputPath, dockerOutputDirectory, rover])
+	subprocess.call(['docker', 'run', '--rm', '-it', '--mount', inputMountString, '--mount', outputMountString, dockerImage, dockerInputPath, dockerOutputDirectory, rover])
 
 	print("Done %s" % miplMeshPath)
