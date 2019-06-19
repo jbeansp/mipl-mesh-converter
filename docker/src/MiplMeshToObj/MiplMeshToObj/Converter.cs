@@ -541,12 +541,38 @@ namespace MiplMeshToObj
 					foreach (XElement geometry in osgGeometrySections.geometryDict[textureBasename])
 					{
 
+						if (cancellationToken.IsCancellationRequested)
+						{
+							Logger.Log("Cancellation requested.");
+							return MeshConversionResult.fail;
+						}
+
+						Vector3[] vArray = null;
+						Vector3[] normals = null;
+						Vector2[] uvs = null;
+						int[] trianglesArray = null;
+
+						
 						Logger.Log("getting vertex data");
+
+
 						//vertex data
-						XAttribute textAttribute = geometry.Element("VertexData").Element("Array").Element("ArrayID").Attribute("text");
+
+						//There seem to be different kinds of osgx files.  Some have VertexData and others VertexArray, etc.
+						XAttribute textAttribute = null;
+						if (geometry.Element("VertexData") != null)
+						{
+							textAttribute = geometry.Element("VertexData").Element("Array").Element("ArrayID").Attribute("text");
+						}
+						else if (geometry.Element("VertexArray") != null)
+						{
+							textAttribute = geometry.Element("VertexArray").Element("osg--Vec3Array").Element("vector").Attribute("text");
+						}
+						
 						if (textAttribute == null)
 						{
 							//no data here, continue
+							Logger.Log("Couldn't find any vertices in this geometry section");
 							continue;
 						}
 						string[] vertexStrvec = textAttribute.Value.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
@@ -610,7 +636,7 @@ namespace MiplMeshToObj
 						}
 
 
-						int[] trianglesArray;
+						//int[] trianglesArray;
 						int maxTriangle = 0;
 						if (uniqueTriangleStructList.Count * 3 < trianglesList.Count || flipTriangleOrderingForCorrectNormal)
 						{
@@ -669,14 +695,33 @@ namespace MiplMeshToObj
 						}
 
 						//normals
-						string[] normalStrvec =
-							geometry
-							.Element("NormalData")
-							.Element("Array")
-							.Element("ArrayID")
-							.Attribute("text")
-							.Value
-							.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+						string[] normalStrvec = new string[] { };
+						if (geometry.Element("NormalData") != null)
+						{
+							normalStrvec =
+								geometry
+								.Element("NormalData")
+								.Element("Array")
+								.Element("ArrayID")
+								.Attribute("text")
+								.Value
+								.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+						}
+						else if (geometry.Element("NormalArray") != null)
+						{
+							normalStrvec =
+								geometry
+								.Element("NormalArray")
+								.Element("osg--Vec3Array")
+								.Element("vector")
+								.Attribute("text")
+								.Value
+								.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+						}
+						else
+						{
+							Logger.Error("Couldn't find NormalData or NormalArray section.");
+						}
 
 						if (normalStrvec.Length % 3 != 0)
 						{
@@ -699,7 +744,7 @@ namespace MiplMeshToObj
 						}
 
 
-						Vector3[] normals = new Vector3[verticesList.Count];
+						normals = new Vector3[verticesList.Count];
 						for (int i = 0; i < indicesList.Count; i++)
 						{
 							normals[i] = normalArray[indicesList[i]];
@@ -716,8 +761,35 @@ namespace MiplMeshToObj
 						}
 
 						//uv
-						string[] textureStrvec = geometry.Element("TexCoordData").Element("Data").
-							Element("Array").Element("ArrayID").Attribute("text").Value.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+						string[] textureStrvec = new string[] { };
+						if (geometry.Element("TexCoordData") != null)
+						{
+							textureStrvec = 
+								geometry
+								.Element("TexCoordData")
+								.Element("Data")
+								.Element("Array")
+								.Element("ArrayID")
+								.Attribute("text")
+								.Value
+								.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+						}
+						else if (geometry.Element("TexCoordArrayList") != null)
+						{
+							textureStrvec =
+								geometry
+								.Element("TexCoordArrayList")
+								.Element("osg--Vec2Array")
+								.Element("vector")
+								.Attribute("text")
+								.Value
+								.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+						}
+						else
+						{
+							Logger.Error("Couldn't find TexCoordData or TexCoordArrayList section.");
+						}
+
 						if (textureStrvec.Length % 2 != 0)
 						{
 							Logger.Error("Texture uv data strvec length is not a multiple of 2");
@@ -737,7 +809,7 @@ namespace MiplMeshToObj
 							//uvArray[i / 2] = new Vector2(c2, c1);
 						}
 
-						Vector2[] uvs = new Vector2[verticesList.Count];
+						uvs = new Vector2[verticesList.Count];
 						for (int i = 0; i < indicesList.Count; i++)
 						{
 							uvs[i] = uvArray[indicesList[i]];
@@ -745,6 +817,8 @@ namespace MiplMeshToObj
 
 
 						Logger.Log("uv parsed.");
+
+						vArray = verticesList.ToArray();
 
 						Logger.Log("Initialized Geometry section. currentNumVertices {0}, unique vertices {1}", numVertices, verticesList.Count);
 
@@ -760,8 +834,6 @@ namespace MiplMeshToObj
 						MeshImageTile meshImageTile;
 						if (textureBasenameToMeshSectionDict.TryGetValue(textureBasename, out meshImageTile))
 						{
-							Vector3[] vArray = verticesList.ToArray();
-
 							meshImageTile.AddData(ref vArray, ref normals, ref uvs, ref trianglesArray);
 						}
 						else
