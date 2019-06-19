@@ -50,11 +50,11 @@ WORKDIR /
 COPY bin app
 COPY src temp/src
 
-RUN \
-    rm -Rf /app/monoexe \
-	&& mkdir -p /app/monoexe \
-	&& MONO_IOMAP=case msbuild /temp/src/MiplMeshToObj/MiplMeshToObj.sln /p:OutputPath=/app/monoexe \
-	&& rm -Rf /temp/src
+# RUN \
+#     rm -Rf /app/monoexe \
+# 	&& mkdir -p /app/monoexe \
+# 	&& MONO_IOMAP=case msbuild /temp/src/MiplMeshToObj/MiplMeshToObj.sln /p:OutputPath=/app/monoexe \
+# 	&& rm -Rf /temp/src
 
 ENTRYPOINT [ "mono", "--debug", "/app/monoexe/MiplMeshToObj.exe" ]
 CMD [ "/path/to/mipl_mesh_filename", "/directory/to/write/obj", "rover: MSL | MER" ]
