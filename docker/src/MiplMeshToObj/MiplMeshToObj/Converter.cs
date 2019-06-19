@@ -623,7 +623,7 @@ namespace MiplMeshToObj
 
 						}
 
-						Logger.Log("Done parsing coordinate lists.");
+						Logger.Log("Done parsing vertext coordinates.");
 
 						//see if we have triangles listed more than once, and if so, remove duplicates
 						//also remove degenerates (triangles with 2 of the same vertex)
@@ -676,7 +676,7 @@ namespace MiplMeshToObj
 
 						if (vertexArray.Length % 3 != 0)
 						{
-							Logger.Error("There are not a multiple of 3 number of vertices listed in the osgx file. How should I make triangles?");
+							Logger.Error($"There are not a multiple of 3 number of vertices listed in the osgx file, vertexArray.Length is {vertexArray.Length}. How should I make triangles?");
 						}
 
 						if (maxTriangle > verticesList.Count())
