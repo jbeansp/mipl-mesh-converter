@@ -172,17 +172,17 @@ namespace MiplMeshToObj
 			return true;
 		}
 
-		const string childrenElementString = "Children";
-		const string osgGroup = "osg--Group";
-		const string osgMatrixTransform = "osg--MatrixTransform";
-		const string osgLod = "osg--LOD";
-		const string osgGeometry = "osg--Geometry";
-		const string nameElementString = "Name";
-		const string attributeAttribute = "attribute";
+		const string childrenElementField = "Children";
+		const string osgGroupField = "osg--Group";
+		const string osgMatrixTransformField = "osg--MatrixTransform";
+		const string osgLodField = "osg--LOD";
+		const string osgGeometryField = "osg--Geometry";
+		const string nameElementField = "Name";
+		const string attributeAttributeField = "attribute";
 		private IEnumerable<XElement> GetNextOsgGroups(XElement currentOsgGroup)
 		{
 
-			XElement childrenElement = currentOsgGroup.Element(childrenElementString);
+			XElement childrenElement = currentOsgGroup.Element(childrenElementField);
 			if (childrenElement == null)
 			{
 				Logger.Error("No Children element exists in osg--Group: {0}", currentOsgGroup.ToString());
@@ -190,11 +190,11 @@ namespace MiplMeshToObj
 			}
 
 			//skip matrix elements and LOD elements
-			var testOsgGroup = childrenElement.Elements(osgGroup);
+			var testOsgGroup = childrenElement.Elements(osgGroupField);
 			if ((testOsgGroup == null || testOsgGroup.Count() == 0))
 			{
 				List<XElement> osgGroups = new List<XElement>();
-				var testOsgMatrix = childrenElement.Elements(osgMatrixTransform);
+				var testOsgMatrix = childrenElement.Elements(osgMatrixTransformField);
 				if (testOsgMatrix != null && testOsgMatrix.Count() > 0)
 				{
 					Logger.Log("Found {0} osgMatrixTransform elements", testOsgMatrix.Count());
@@ -205,7 +205,7 @@ namespace MiplMeshToObj
 					}
 				}
 
-				var testOsgLod = childrenElement.Elements(osgLod);
+				var testOsgLod = childrenElement.Elements(osgLodField);
 				if (testOsgLod != null && testOsgLod.Count() > 0)
 				{
 					Logger.Log("Found {0} osgLOD elements", testOsgLod.Count());
@@ -234,7 +234,7 @@ namespace MiplMeshToObj
 		
 		private bool HasGeometryDescendants(XElement osgGroup)
 		{
-			return osgGroup.Descendants(osgGeometry).Count() > 0;
+			return osgGroup.Descendants(osgGeometryField).Count() > 0;
 		}
 
 		private void GetGeometryRecursive(XElement osgGroup, ref OsgGeometrySections osgGeometrySections)
@@ -244,21 +244,26 @@ namespace MiplMeshToObj
 
 			//see if we're at a texture level
 			bool foundName = false;
-			XElement nameTest = osgGroup.Element(nameElementString);
-			if (nameTest != null)
+			//only accept names from actual osg groups, not matrix transforms, lods, etc.
+			if (osgGroup.Name.LocalName == osgGroupField)
 			{
-				XAttribute attributeTest = nameTest.Attribute(attributeAttribute);
-				if (attributeTest != null)
+				XElement nameTest = osgGroup.Element(nameElementField);
+				if (nameTest != null)
 				{
-					foundName = true;
-					string textureBasename = attributeTest.Value.Replace("&quot;", "").Replace("\"", "").TrimStart(new char[] { '_' });
-					List<XElement> geometrySections;
-					if (!osgGeometrySections.geometryDict.TryGetValue(textureBasename, out geometrySections))
+					XAttribute attributeTest = nameTest.Attribute(attributeAttributeField);
+					if (attributeTest != null)
 					{
-						geometrySections = new List<XElement>();
-						osgGeometrySections.geometryDict.Add(textureBasename, geometrySections);
+						foundName = true;
+						string textureBasename = attributeTest.Value.Replace("&quot;", "").Replace("\"", "").TrimStart(new char[] { '_' });
+						Logger.Log($"Found texture {textureBasename}");
+						List<XElement> geometrySections;
+						if (!osgGeometrySections.geometryDict.TryGetValue(textureBasename, out geometrySections))
+						{
+							geometrySections = new List<XElement>();
+							osgGeometrySections.geometryDict.Add(textureBasename, geometrySections);
+						}
+						geometrySections.AddRange(osgGroup.Descendants(osgGeometryField));
 					}
-					geometrySections.AddRange(osgGroup.Descendants(osgGeometry));
 				}
 			}
 
@@ -274,7 +279,7 @@ namespace MiplMeshToObj
 
 		private OsgGeometrySections GetOsgGeometrySections(XElement root)
 		{
-			XElement matrixTransformElement = root.Element(osgMatrixTransform);
+			XElement matrixTransformElement = root.Element(osgMatrixTransformField);
 			if (matrixTransformElement == null)
 			{
 				Logger.Error("matrixTransformElement is null");
@@ -1183,6 +1188,7 @@ namespace MiplMeshToObj
 						return ConvertRgbFilesResult.fail;
 					}
 
+					Logger.Log("processing {0}", basename);
 					//substring to take off version number.
 					string unprocessedImagePattern = basename.Substring(0, basename.Length - 1) + ".rgb";
 
