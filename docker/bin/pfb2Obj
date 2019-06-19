@@ -90,10 +90,10 @@ export OSG_NOTIFY="DEBUG"
 export PFSHAREDSIZE=500000000
 #export PFSEMASIZE=2000000000
 export PFNFYLEVEL=7
-
+export LD_LIBRARY_PATH=/usr/local/lib 
 #command="/opt/VirtualGL/bin/vglrun osgconv ${osgoptions} $pfbFile $objFile"
-command="LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib xvfb-run osgconv ${osgoptions} $pfbFile $objFile"
-# starting timer in subshell. It sends a SIGUSR1 to the father if it timeouts.
+command="xvfb-run osgconv ${osgoptions} $pfbFile $objFile"
+# starting timer in subshell. It sends a SIGUSR1 to the parent if it timeouts.
 #export TIMEOUT=10
 #(sleep $TIMEOUT ; kill -SIGUSR1 $PID) &
 #run the command

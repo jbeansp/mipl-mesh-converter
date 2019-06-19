@@ -92,12 +92,12 @@ export OSG_NOTIFY="DEBUG"
 export PFSHAREDSIZE=500000000
 #export PFSEMASIZE=2000000000
 export PFNFYLEVEL=7
-
-command="LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib xvfb-run osgconv ${osgoptions} $pfbFile $osgxFile"
-echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib xvfb-run osgconv ${osgoptions} $pfbFile $osgxFile"
+export LD_LIBRARY_PATH=/usr/local/lib 
+command="xvfb-run osgconv ${osgoptions} $pfbFile $osgxFile"
+echo "xvfb-run osgconv ${osgoptions} $pfbFile $osgxFile"
 #command="/opt/VirtualGL/bin/vglrun osgconv ${osgoptions} $pfbFile $osgxFile"
 #command="schroot -c trusty_i386 -- /bin/bash -c \"source /home/ubuntu/.bashrc-jon && osgconv ${osgoptions} $pfbFile $osgxFile"
-# starting timer in subshell. It sends a SIGUSR1 to the father if it timeouts.
+# starting timer in subshell. It sends a SIGUSR1 to the parent if it timeouts.
 #export TIMEOUT=10
 #(sleep $TIMEOUT ; kill -SIGUSR1 $PID) &
 #run the command

@@ -50,6 +50,7 @@ WORKDIR /
 COPY bin app
 COPY src temp/src
 
+RUN apt update && apt install -y psmisc
 # RUN \
 #     rm -Rf /app/monoexe \
 # 	&& mkdir -p /app/monoexe \
