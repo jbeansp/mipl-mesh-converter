@@ -623,11 +623,15 @@ namespace MiplMeshToObj
 
 						//There seem to be different kinds of osgx files.  Some have VertexData and others VertexArray, etc.
 						XAttribute vertexTextAttribute = null;
-						if (geometry.Element("VertexData") != null)
+						if (geometry.Element("VertexData") != null 
+							&& geometry.Element("VertexData").Element("Array") != null
+							&& geometry.Element("VertexData").Element("Array").Element("ArrayID") != null)
 						{
 							vertexTextAttribute = geometry.Element("VertexData").Element("Array").Element("ArrayID").Attribute("text");
 						}
-						else if (geometry.Element("VertexArray") != null)
+						else if (geometry.Element("VertexArray") != null 
+							&& geometry.Element("VertexArray").Element("osg--Vec3Array") != null
+							&& geometry.Element("VertexArray").Element("osg--Vec3Array").Element("vector") != null)
 						{
 							vertexTextAttribute = geometry.Element("VertexArray").Element("osg--Vec3Array").Element("vector").Attribute("text");
 						}
