@@ -89,6 +89,8 @@ namespace MiplMeshToObj
 			AddDataToArray(ref uv, ref uvArray);
 			AddDataToArray(ref triangles, ref adjustedTriangleArray);
 
+
+			Logger.Log($"AddData num verts {vertices.Length}, max triangle index {triangles.Max()}");
 		}
 
 

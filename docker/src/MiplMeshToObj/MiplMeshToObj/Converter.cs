@@ -30,12 +30,11 @@ namespace MiplMeshToObj
 		private Configuration configuration;
 
 		//if the normals look like they are pointing inwards in the resulting mesh, try toggling this value.
-		private const bool flipTriangleOrderingForCorrectNormal = true;
+		private const bool ivOsgxFlipOrderForUnity = true;
 		//private const bool flipTriangleOrderingForCorrectNormal = false;
 
 		bool objFlipOrderForUnity = true;
 		bool pfbOsgxFlipOrderForUnity = false;
-		bool ivOsgxFlipOrderForUnity = true;
 
 		public Converter(Configuration configuration)
 		{
@@ -664,7 +663,7 @@ namespace MiplMeshToObj
 							float c2 = Convert.ToSingle(vertexStrvec[i + 1]);
 							float c3 = Convert.ToSingle(vertexStrvec[i + 2]);
 
-							vertexArray[i / 3] = new Vector3(c1, c2, c3).ToUnityCoordinateSystem();//.ToCoordinateSystem(CoordinateSystem.SAE, CoordinateSystem.UNITY);
+							vertexArray[i / 3] = new Vector3(c1, c2, c3).SaeToUnityCoordinateSystem();//.ToCoordinateSystem(CoordinateSystem.SAE, CoordinateSystem.UNITY);
 
 							double hash = (double)c1;
 							hash = hash * 13 + c2;
@@ -692,6 +691,7 @@ namespace MiplMeshToObj
 
 						if (weDontHaveStrips)
 						{
+							Logger.Log("Making triangles from vertices, not strips.");
 							//see if we have triangles listed more than once, and if so, remove duplicates
 							//also remove degenerates (triangles with 2 of the same vertex)
 							List<Triangle> uniqueTriangleStructList = new List<Triangle>();
@@ -705,7 +705,7 @@ namespace MiplMeshToObj
 
 							//int[] trianglesArray;
 							int maxTriangle = 0;
-							if (uniqueTriangleStructList.Count * 3 < trianglesList.Count || flipTriangleOrderingForCorrectNormal)
+							if (uniqueTriangleStructList.Count * 3 < trianglesList.Count || ivOsgxFlipOrderForUnity)
 							{
 								Logger.Log("Found {0} duplicate and/or degenerate triangles", (trianglesList.Count / 3 - uniqueTriangleStructList.Count));
 
@@ -713,7 +713,7 @@ namespace MiplMeshToObj
 								int i = 0;
 								foreach (Triangle t in uniqueTriangleStructList)
 								{
-									if (flipTriangleOrderingForCorrectNormal)
+									if (ivOsgxFlipOrderForUnity)
 									{
 										trianglesArray[i++] = t.v1;
 										trianglesArray[i++] = t.v3;
@@ -756,7 +756,7 @@ namespace MiplMeshToObj
 						}
 						else
 						{
-
+							Logger.Log("Making triangles from strips.");
 							//Now make triangles
 							//construct triangles from triangle strip info
 							//not usual the strip definition...
@@ -878,7 +878,7 @@ namespace MiplMeshToObj
 							float c1 = Convert.ToSingle(normalStrvec[i]);
 							float c2 = Convert.ToSingle(normalStrvec[i + 1]);
 							float c3 = Convert.ToSingle(normalStrvec[i + 2]);
-							normalArray[i / 3] = new Vector3(c1, c2, c3).ToUnityCoordinateSystem();//.ToCoordinateSystem(CoordinateSystem.SAE, CoordinateSystem.UNITY);
+							normalArray[i / 3] = new Vector3(c1, c2, c3).SaeToUnityCoordinateSystem();//.ToCoordinateSystem(CoordinateSystem.SAE, CoordinateSystem.UNITY);
 						}
 
 
