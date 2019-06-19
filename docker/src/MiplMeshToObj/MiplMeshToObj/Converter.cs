@@ -30,7 +30,8 @@ namespace MiplMeshToObj
 		private Configuration configuration;
 
 		//if the normals look like they are pointing inwards in the resulting mesh, try toggling this value.
-		private const bool flipTriangleOrderingForCorrectNormal = true;
+		//private const bool flipTriangleOrderingForCorrectNormal = true;
+		private const bool flipTriangleOrderingForCorrectNormal = false;
 
 
 		public Converter(Configuration configuration)
