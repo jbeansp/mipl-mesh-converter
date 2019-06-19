@@ -279,7 +279,8 @@ namespace MiplMeshToObj
 					textureBasenames.ToArray(),
 					textureDirectory: inputRgbDirectory,
 					outputDirectory: outputDirectory,
-					cancellationToken: cancellationToken).ConfigureAwait(false);
+					cancellationToken: cancellationToken)
+					.ConfigureAwait(false);
 
 
 				if (!result.success)
@@ -290,30 +291,14 @@ namespace MiplMeshToObj
 
 
 
-				//Combine all the textures into a texture atlas.  Get a dictionary of <material, atlas offsets>, so I can pass the offsets to MeshSection to 
-				//offset the uv values.
+
 				string osgxName = Path.GetFileNameWithoutExtension(inputOsgxPath);
-				string textureAtlasBasename = osgxName;
-				//string textureAtlasPath = Utility.PathCombine(outputDirectory, textureAtlasFilename);
-				//textureAtlas = new TextureAtlas(textureBasenameToPathDict.Values.ToArray(), outputDirectory, textureAtlasBasename, maxAtlasSideLength);
-
-				//Logger.Log("Made texture atlas");
-
-				/*
-				 * Now start create and start filling MeshSections
-				 * The MeshSection will take care of dividing up the data into Containers which are within the 64k Unity vertex limit.
-				 */
-
-
-				// Initialize MeshSection list, one MeshSection for each material
-				// Dictionary<string,int> containerIndexForMaterial = new Dictionary<string, int>(); //key = materialName, value = containerIndex to use for that material
+				
 				Dictionary<string, MeshImageTile> textureBasenameToMeshSectionDict = new Dictionary<string, MeshImageTile>();
-				//			string[] textureBasenames = textureBasenameToPathDict.Keys.ToArray();			
 				var meshImageTiles = new List<MeshImageTile>();
 				foreach (string basename in textureBasenames)
 				{
-					//Rect uvOffset = textureAtlas.GetUvOffset(textureBasenameToPathDict[basename]);
-					//Logger.Log("uvOffset: x {0} y {1} w {2} h {3}", uvOffset.x, uvOffset.y, uvOffset.width, uvOffset.height);
+					
 					MeshImageTile meshImageTile = new MeshImageTile(osgxName, result.textureBasenameToPathDict[basename], outputDirectory);
 					meshImageTiles.Add(meshImageTile);
 					textureBasenameToMeshSectionDict.Add(basename, meshImageTile);
@@ -390,43 +375,6 @@ namespace MiplMeshToObj
 									foreach (XElement geometry in fourthGroupElement.Descendants("osg--Geometry"))
 									{
 
-										//OSGX files made from pfb files have triangle strips in them. IV files do not.
-										//To keep everything consistent, don't do special processing for strips,
-										//just treat everything like a bucket of vertices associated with a texture.
-
-
-										//Logger.Log("getting triangle strip info");
-										////triangle strip info
-										//bool weDontHaveStrips = false;
-										//int triangleStripCount = 0;
-										//int[] triangleStripVertexCountArray = new int[0];
-										////see if we have strips or single triangles
-										//if (geometry.Element("PrimitiveSetList").Element("DrawArraysLength") != null)
-										//{
-
-										//	string[] triangleStripStrvec = geometry.Element("PrimitiveSetList").
-										//		Element("DrawArraysLength").Attribute("text").Value.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-										//	Logger.Log("triangle strip count {0}", triangleStripStrvec.Length);
-
-										//	triangleStripCount = triangleStripStrvec.Length;
-										//	triangleStripVertexCountArray = new int[triangleStripCount];
-										//	for (int i = 0; i < triangleStripCount; i++)
-										//	{
-										//		//Logger.Log("Attempting int32 conversion of :{0}:", triangleStripStrvec[i]);
-										//		triangleStripVertexCountArray[i] = Convert.ToInt32(triangleStripStrvec[i]);
-										//	}
-										//}
-										//else if (geometry.Element("PrimitiveSetList").Element("DrawArrays") != null)
-										//{
-										//	//if the element DrawArraysLength doesn't exist, DrawArrays is substituted, which lists single triangles
-										//	//triangleStripCount = 1;
-										//	//triangleStripVertexCountArray = new int[] { 3 };
-										//	weDontHaveStrips = true;
-										//}
-										//else
-										//{
-										//	Logger.Error("No DrawArraysLength or DrawArrays section. geometry:\n {0}", geometry.ToString());
-										//}
 
 										if (cancellationToken.IsCancellationRequested)
 										{
@@ -471,18 +419,6 @@ namespace MiplMeshToObj
 
 											vertexArray[i / 3] = new Vector3(c1, c2, c3);//.ToCoordinateSystem(CoordinateSystem.SAE, CoordinateSystem.UNITY);
 
-											////see if we alreday have this vertex.  This is time consuming for large vertexStrvec.Length!
-											//int indexof = verticesList.IndexOf(vertexArray[i / 3]);
-											//                              if (indexof == -1)
-											//{
-											//	indicesList.Add(i / 3);
-											//	verticesList.Add(vertexArray[i / 3]);
-											//	trianglesList.Add(verticesList.Count() - 1);
-											//} else
-											//{
-											//	trianglesList.Add(indexof);
-											//}
-
 											double hash = (double)c1;
 											hash = hash * 13 + c2;
 											hash = hash * 13 + c3;
@@ -509,27 +445,11 @@ namespace MiplMeshToObj
 										//see if we have triangles listed more than once, and if so, remove duplicates
 										//also remove degenerates (triangles with 2 of the same vertex)
 										List<Triangle> uniqueTriangleStructList = new List<Triangle>();
-										//List<int> indicesToKeep = new List<int>();
 										for (int i = 0; i < trianglesList.Count - 2; i += 3)
 										{
 											Triangle t = new Triangle(trianglesList[i], trianglesList[i + 1], trianglesList[i + 2]);
 
-											//This can take hours, and doesn't look like it fixes anything on MSL meshes.  So skip this step
-											//Jon 05/19/2017
-											//if (false)
-											//{
-											//	if (!uniqueTriangleStructList.Contains(t) && !t.IsDegenerate)
-											//	{
-											//		uniqueTriangleStructList.Add(t);
-											//		//indicesToKeep.Add(i);
-											//		//indicesToKeep.Add(i + 1);
-											//		//indicesToKeep.Add(i + 2);
-											//	}
-											//}
-											//else
-											//{
 											uniqueTriangleStructList.Add(t);
-											//}
 										}
 
 
@@ -584,19 +504,7 @@ namespace MiplMeshToObj
 
 										Logger.Log("Vertices parsed.  triangle  max vertex index {0}, number of vertices {1}", maxTriangle, verticesList.Count());
 
-										////if we don't have triangle strips, and just single triangles, make them into single element strips for consistent handling
-										////set the triangle strip counts appropriately for a series of single triangles
-										//if (weDontHaveStrips)
-										//{
-										//	triangleStripCount = numVertices / 3;
-										//	triangleStripVertexCountArray = new int[triangleStripCount];
-										//	for (int i = 0; i < triangleStripCount; i++)
-										//	{
-										//		triangleStripVertexCountArray[i] = 3;
-										//	}
-										//}
-
-
+									
 										if (cancellationToken.IsCancellationRequested)
 										{
 											Logger.Log("Cancellation requested.");
@@ -682,69 +590,6 @@ namespace MiplMeshToObj
 										Logger.Log("uv parsed.");
 
 										Logger.Log("Initialized Geometry section. currentNumVertices {0}, unique vertices {1}", numVertices, verticesList.Count);
-
-
-
-
-
-										//construct triangles from triangle strip info
-										// numtri = numstrips + (numverts - numstrips*3)  = numverts - 2*numStrips;
-										//reasoning:  first triangle uses 3 vertices.  all subsequence triangles use 1 additional vertex.
-										//so numStrips gives the first triangle, which has 3 vertices.  The remaining number of vertices
-										//all account for an additional triangle
-										//int numTriangles = 3 * (numVertices - 2 * triangleStripCount);
-										//int[] triangles = new int[numTriangles];
-										//int vIndex = 0;
-										//int triIndex = 0;
-										//try
-										//{
-										//	foreach (int ts in triangleStripVertexCountArray)
-										//	{
-										//		for (int vi = 0; vi < ts - 2; vi++)
-										//		{
-										//			if (osgxFlipOrderForUnity)
-										//			{
-										//				//if odd triangle
-										//				if (vi % 2 > 0)
-										//				{
-										//					triangles[triIndex++] = vIndex + vi;
-										//					triangles[triIndex++] = vIndex + vi + 2;
-										//					triangles[triIndex++] = vIndex + vi + 1;
-										//				}
-										//				else
-										//				{
-										//					//even triangle, reverse first two indices
-										//					triangles[triIndex++] = vIndex + vi + 1;
-										//					triangles[triIndex++] = vIndex + vi + 2;
-										//					triangles[triIndex++] = vIndex + vi;
-										//				}
-										//			}
-										//			else
-										//			{
-										//				//if odd triangle
-										//				if (vi % 2 > 0)
-										//				{
-										//					triangles[triIndex++] = vIndex + vi;
-										//					triangles[triIndex++] = vIndex + vi + 1;
-										//					triangles[triIndex++] = vIndex + vi + 2;
-										//				}
-										//				else
-										//				{
-										//					//even triangle, reverse first two indices
-										//					triangles[triIndex++] = vIndex + vi + 1;
-										//					triangles[triIndex++] = vIndex + vi;
-										//					triangles[triIndex++] = vIndex + vi + 2;
-										//				}
-										//			}
-
-										//		}
-										//		vIndex += ts;
-										//	}
-										//}
-										//catch (Exception e)
-										//{
-										//	Logger.Error(e);
-										//}
 
 
 										if (cancellationToken.IsCancellationRequested)
@@ -977,7 +822,7 @@ namespace MiplMeshToObj
 		{
 			string command = configuration.ConvertRgb;
 			string arguments = rgbPath + " " + outputPath;
-			var result = await RunExternalProcess.RunAsync(command, arguments, cancellationToken, printStdout: true, printStderr: true);
+			var result = await RunExternalProcess.RunAsync(command, arguments, cancellationToken, printStdout: true, printStderr: true).ConfigureAwait(false);
 
 			if (!result.success)
 				return false;

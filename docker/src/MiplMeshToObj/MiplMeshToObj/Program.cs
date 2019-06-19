@@ -56,6 +56,8 @@ namespace MiplMeshToObj
 				var inputInfo = new Converter.InputInfo(miplMeshPath, outputDirectory, rover);
 
 				converter.ProcessMeshAsync(inputInfo).GetAwaiter().GetResult();
+
+				Logger.Log("Done running MiplMeshToObj.");
 			}
 			catch (Exception e)
 			{
