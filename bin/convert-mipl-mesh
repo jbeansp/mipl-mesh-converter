@@ -7,9 +7,7 @@ import subprocess
 
 
 def parseArgv():
-	parser = argparse.ArgumentParser(description="Convert a MIPL .pfb or .iv mesh for MER or MSL to .obj format.  ", 
-		epilog="E.g., convert-mipl-mesh.py --develop --updatetestserver --staging --merb --windows --overwrite-patcher " + \
-		"-c -v auto -p previous current -o --run-on-osx-only -l 100")
+	parser = argparse.ArgumentParser(description="Convert a MIPL .pfb or .iv mesh for MER or MSL to .obj format.")
 
 	parser.add_argument("-m", "--mipl-mesh-path", metavar=('MIPL_MESH_PATH'), required=True, help="The path of the mipl mesh to convert.")
 
@@ -71,6 +69,9 @@ if __name__ == '__main__':
 
 	print("Processing %s, and writing obj to %s" % (miplMeshPath, outputDirectory))
 
-	subprocess.call(['docker', 'run', '--rm', '-it', '--mount', inputMountString, '--mount', outputMountString, dockerImage, dockerInputPath, dockerOutputDirectory, rover])
+	command = ['docker', 'run', '--rm', '-it', '--mount', inputMountString, '--mount', outputMountString, dockerImage, dockerInputPath, dockerOutputDirectory, rover]
+
+	print subprocess.list2cmdline(command)
+	subprocess.call(command)
 
 	print("Done %s" % miplMeshPath)
