@@ -30,9 +30,12 @@ namespace MiplMeshToObj
 		private Configuration configuration;
 
 		//if the normals look like they are pointing inwards in the resulting mesh, try toggling this value.
-		//private const bool flipTriangleOrderingForCorrectNormal = true;
-		private const bool flipTriangleOrderingForCorrectNormal = false;
+		private const bool flipTriangleOrderingForCorrectNormal = true;
+		//private const bool flipTriangleOrderingForCorrectNormal = false;
 
+		bool objFlipOrderForUnity = true;
+		bool pfbOsgxFlipOrderForUnity = false;
+		bool ivOsgxFlipOrderForUnity = true;
 
 		public Converter(Configuration configuration)
 		{
@@ -553,7 +556,67 @@ namespace MiplMeshToObj
 						Vector2[] uvs = null;
 						int[] trianglesArray = null;
 
+
+
+						Logger.Log("getting triangle strip info");
+						//triangle strip info
+						bool weDontHaveStrips = false;
+						int triangleStripCount = 0;
+						int[] triangleStripVertexCountArray = new int[] { };
+						//see if we have strips or single triangles
+						if (geometry.Element("PrimitiveSetList") != null && geometry.Element("PrimitiveSetList").Element("DrawArraysLength") != null)
+						{
+
+							string[] triangleStripStrvec = 
+								geometry
+								.Element("PrimitiveSetList")
+								.Element("DrawArraysLength")
+								.Attribute("text")
+								.Value
+								.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+							Logger.Log("triangle strip count {0}", triangleStripStrvec.Length);
+
+							triangleStripCount = triangleStripStrvec.Length;
+							triangleStripVertexCountArray = new int[triangleStripCount];
+							for (int i = 0; i < triangleStripCount; i++)
+							{
+								//Logger.Log("Attempting int32 conversion of :{0}:", triangleStripStrvec[i]);
+								triangleStripVertexCountArray[i] = Convert.ToInt32(triangleStripStrvec[i]);
+							}
+
+						}
+						else if (geometry.Element("PrimitiveSetList") != null && geometry.Element("PrimitiveSetList").Element("osg--DrawArrayLengths") != null)
+						{
+							//if the element DrawArraysLength doesn't exist, DrawArrays is substituted, which lists single triangles
+							//triangleStripCount = 1;
+							//triangleStripVertexCountArray = new int[] { 3 };
+							string[] triangleStripStrvec =
+								geometry
+								.Element("PrimitiveSetList")
+								.Element("osg--DrawArrayLengths")
+								.Element("vector")
+								.Attribute("text")
+								.Value
+								.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+							Logger.Log("triangle strip count {0}", triangleStripStrvec.Length);
+
+							triangleStripCount = triangleStripStrvec.Length;
+							triangleStripVertexCountArray = new int[triangleStripCount];
+							for (int i = 0; i < triangleStripCount; i++)
+							{
+								//Logger.Log("Attempting int32 conversion of :{0}:", triangleStripStrvec[i]);
+								triangleStripVertexCountArray[i] = Convert.ToInt32(triangleStripStrvec[i]);
+							}
+
+						}
+						else
+						{
+							weDontHaveStrips = true;
+						}
 						
+
+
+
 						Logger.Log("getting vertex data");
 
 
@@ -624,70 +687,144 @@ namespace MiplMeshToObj
 
 						}
 
-						Logger.Log("Done parsing vertext coordinates.");
+						Logger.Log("Done parsing vertex coordinates.");
 
-						//see if we have triangles listed more than once, and if so, remove duplicates
-						//also remove degenerates (triangles with 2 of the same vertex)
-						List<Triangle> uniqueTriangleStructList = new List<Triangle>();
-						for (int i = 0; i < trianglesList.Count - 2; i += 3)
+
+						if (weDontHaveStrips)
 						{
-							Triangle t = new Triangle(trianglesList[i], trianglesList[i + 1], trianglesList[i + 2]);
-
-							uniqueTriangleStructList.Add(t);
-						}
-
-
-						//int[] trianglesArray;
-						int maxTriangle = 0;
-						if (uniqueTriangleStructList.Count * 3 < trianglesList.Count || flipTriangleOrderingForCorrectNormal)
-						{
-							Logger.Log("Found {0} duplicate and/or degenerate triangles", (trianglesList.Count / 3 - uniqueTriangleStructList.Count));
-
-							trianglesArray = new int[uniqueTriangleStructList.Count * 3];
-							int i = 0;
-							foreach (Triangle t in uniqueTriangleStructList)
+							//see if we have triangles listed more than once, and if so, remove duplicates
+							//also remove degenerates (triangles with 2 of the same vertex)
+							List<Triangle> uniqueTriangleStructList = new List<Triangle>();
+							for (int i = 0; i < trianglesList.Count - 2; i += 3)
 							{
-								if (flipTriangleOrderingForCorrectNormal)
-								{
-									trianglesArray[i++] = t.v1;
-									trianglesArray[i++] = t.v3;
-									trianglesArray[i++] = t.v2;
-								}
-								else
-								{
-									trianglesArray[i++] = t.v1;
-									trianglesArray[i++] = t.v2;
-									trianglesArray[i++] = t.v3;
-								}
+								Triangle t = new Triangle(trianglesList[i], trianglesList[i + 1], trianglesList[i + 2]);
 
-								maxTriangle = maxTriangle < t.v1 ? t.v1 : maxTriangle;
-								maxTriangle = maxTriangle < t.v2 ? t.v2 : maxTriangle;
-								maxTriangle = maxTriangle < t.v3 ? t.v3 : maxTriangle;
+								uniqueTriangleStructList.Add(t);
 							}
 
+
+							//int[] trianglesArray;
+							int maxTriangle = 0;
+							if (uniqueTriangleStructList.Count * 3 < trianglesList.Count || flipTriangleOrderingForCorrectNormal)
+							{
+								Logger.Log("Found {0} duplicate and/or degenerate triangles", (trianglesList.Count / 3 - uniqueTriangleStructList.Count));
+
+								trianglesArray = new int[uniqueTriangleStructList.Count * 3];
+								int i = 0;
+								foreach (Triangle t in uniqueTriangleStructList)
+								{
+									if (flipTriangleOrderingForCorrectNormal)
+									{
+										trianglesArray[i++] = t.v1;
+										trianglesArray[i++] = t.v3;
+										trianglesArray[i++] = t.v2;
+									}
+									else
+									{
+										trianglesArray[i++] = t.v1;
+										trianglesArray[i++] = t.v2;
+										trianglesArray[i++] = t.v3;
+									}
+
+									maxTriangle = maxTriangle < t.v1 ? t.v1 : maxTriangle;
+									maxTriangle = maxTriangle < t.v2 ? t.v2 : maxTriangle;
+									maxTriangle = maxTriangle < t.v3 ? t.v3 : maxTriangle;
+								}
+
+							}
+							else
+							{
+								trianglesArray = trianglesList.ToArray();
+							}
+							uniqueTriangleStructList = null;
+
+
+
+
+							if (vertexArray.Length % 3 != 0)
+							{
+								Logger.Error($"There are not a multiple of 3 number of vertices listed in the osgx file, vertexArray.Length is {vertexArray.Length}. How should I make triangles?");
+							}
+
+							if (maxTriangle > verticesList.Count())
+							{
+								Logger.Error("triangles max vertex index {0}, number of vertices {1}", maxTriangle, verticesList.Count());
+							}
+
+
+							Logger.Log("Vertices parsed.  triangle  max vertex index {0}, number of vertices {1}", maxTriangle, verticesList.Count());
 						}
 						else
 						{
-							trianglesArray = trianglesList.ToArray();
+
+							//Now make triangles
+							//construct triangles from triangle strip info
+							//not usual the strip definition...
+							//apparently each strip int value is a strip in itself. so a sequence of 3 3 3, etc means to take each successive
+							//triplet of the vertex array, and contruct a triangle out of it.  4 means do the same, but with the fourth
+							//vertex, use the previous 3 and 2 to make a second triangle.
+							// numtri = numstrips + (numverts - numstrips*3)  = numverts - 2*numStrips;
+							//reasoning:  first triangle uses 3 vertices.  all subsequence triangles use 1 additional vertex.
+							//so numStrips gives the first triangle, which has 3 vertices.  The remaining number of vertices
+							//all account for an additional triangle
+							int numTriangles = 3 * (numVertices - 2 * triangleStripCount);
+							int[] triangles = new int[numTriangles];
+							int vIndex = 0;
+							int triIndex = 0;
+							try
+							{
+								foreach (int ts in triangleStripVertexCountArray)
+								{
+									for (int vi = 0; vi < ts - 2; vi++)
+									{
+										if (pfbOsgxFlipOrderForUnity)
+										{
+											//if odd triangle
+											if (vi % 2 > 0)
+											{
+												triangles[triIndex++] = vIndex + vi;
+												triangles[triIndex++] = vIndex + vi + 2;
+												triangles[triIndex++] = vIndex + vi + 1;
+											}
+											else
+											{
+												//even triangle, reverse first two indices
+												triangles[triIndex++] = vIndex + vi + 1;
+												triangles[triIndex++] = vIndex + vi + 2;
+												triangles[triIndex++] = vIndex + vi;
+											}
+										}
+										else
+										{
+											//if odd triangle
+											if (vi % 2 > 0)
+											{
+												triangles[triIndex++] = vIndex + vi;
+												triangles[triIndex++] = vIndex + vi + 1;
+												triangles[triIndex++] = vIndex + vi + 2;
+											}
+											else
+											{
+												//even triangle, reverse first two indices
+												triangles[triIndex++] = vIndex + vi + 1;
+												triangles[triIndex++] = vIndex + vi;
+												triangles[triIndex++] = vIndex + vi + 2;
+											}
+										}
+
+									}
+									vIndex += ts;
+								}
+							}
+							catch (Exception e)
+							{
+								Logger.Error("Caught exception: {0}", e);
+							}
+							Logger.Log("predicted num triangles {0}, actual num triangles {1}", numTriangles, triIndex);
+
+							trianglesArray = triangles;
+
 						}
-						uniqueTriangleStructList = null;
-
-
-
-
-						if (vertexArray.Length % 3 != 0)
-						{
-							Logger.Error($"There are not a multiple of 3 number of vertices listed in the osgx file, vertexArray.Length is {vertexArray.Length}. How should I make triangles?");
-						}
-
-						if (maxTriangle > verticesList.Count())
-						{
-							Logger.Error("triangles max vertex index {0}, number of vertices {1}", maxTriangle, verticesList.Count());
-						}
-
-
-						Logger.Log("Vertices parsed.  triangle  max vertex index {0}, number of vertices {1}", maxTriangle, verticesList.Count());
-
 
 						if (cancellationToken.IsCancellationRequested)
 						{
