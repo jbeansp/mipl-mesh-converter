@@ -34,6 +34,10 @@
       "frameworks": {
         "net46": {
           "dependencies": {
+            "Microsoft.Win32.Primitives": {
+              "target": "Package",
+              "version": "[4.3.0, )"
+            },
             "Newtonsoft.Json": {
               "target": "Package",
               "version": "[12.0.2, )"

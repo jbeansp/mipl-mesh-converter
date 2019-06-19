@@ -5909,6 +5909,7 @@
   },
   "projectFileDependencyGroups": {
     ".NETFramework,Version=v4.6": [
+      "Microsoft.Win32.Primitives >= 4.3.0",
       "Newtonsoft.Json >= 12.0.2",
       "Nito.AsyncEx >= 5.0.0"
     ]
@@ -5946,6 +5947,10 @@
     "frameworks": {
       "net46": {
         "dependencies": {
+          "Microsoft.Win32.Primitives": {
+            "target": "Package",
+            "version": "[4.3.0, )"
+          },
           "Newtonsoft.Json": {
             "target": "Package",
             "version": "[12.0.2, )"
