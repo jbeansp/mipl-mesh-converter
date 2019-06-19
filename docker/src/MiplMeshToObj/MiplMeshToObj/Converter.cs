@@ -172,8 +172,123 @@ namespace MiplMeshToObj
 			return true;
 		}
 
+		const string childrenElementString = "Children";
+		const string osgGroup = "osg--Group";
+		const string osgMatrixTransform = "osg--MatrixTransform";
+		const string osgLod = "osg--LOD";
+		const string osgGeometry = "osg--Geometry";
+		const string nameElementString = "Name";
+		const string attributeAttribute = "attribute";
+		private IEnumerable<XElement> GetNextOsgGroups(XElement currentOsgGroup)
+		{
 
-	
+			XElement childrenElement = currentOsgGroup.Element(childrenElementString);
+			if (childrenElement == null)
+			{
+				Logger.Error("No Children element exists in osg--Group: {0}", currentOsgGroup.ToString());
+				return new XElement[] { };
+			}
+
+			//skip matrix elements and LOD elements
+			var testOsgGroup = childrenElement.Elements(osgGroup);
+			if ((testOsgGroup == null || testOsgGroup.Count() == 0))
+			{
+				List<XElement> osgGroups = new List<XElement>();
+				var testOsgMatrix = childrenElement.Elements(osgMatrixTransform);
+				if (testOsgMatrix != null && testOsgMatrix.Count() > 0)
+				{
+					Logger.Log("Found {0} osgMatrixTransform elements", testOsgMatrix.Count());
+					//found a osg--MatrixTransform layer between osg--Groups.  
+					foreach(var osgMatrix in testOsgMatrix)
+					{
+						osgGroups.AddRange(GetNextOsgGroups(osgMatrix));
+					}
+				}
+
+				var testOsgLod = childrenElement.Elements(osgLod);
+				if (testOsgLod != null && testOsgLod.Count() > 0)
+				{
+					Logger.Log("Found {0} osgLOD elements", testOsgLod.Count());
+					//found a osg--LOD layer between osg--Groups.  
+					foreach (var lod in testOsgLod)
+					{
+						osgGroups.AddRange(GetNextOsgGroups(lod));
+					}
+				}
+
+				return osgGroups;
+			}
+
+			return new XElement[] { };
+		}
+
+
+		private class OsgGeometrySections
+		{
+			public bool Success { get; private set; } = true;
+			public readonly Dictionary<string, List<XElement>> geometryDict = new Dictionary<string, List<XElement>>();
+
+			public static readonly OsgGeometrySections fail = new OsgGeometrySections() { Success = false };
+		}
+
+		
+		private bool HasGeometryDescendants(XElement osgGroup)
+		{
+			return osgGroup.Descendants(osgGeometry).Count() > 0;
+		}
+
+		private void GetGeometryRecursive(XElement osgGroup, ref OsgGeometrySections osgGeometrySections)
+		{
+			if (!HasGeometryDescendants(osgGroup))
+				return;
+
+			//see if we're at a texture level
+			bool foundName = false;
+			XElement nameTest = osgGroup.Element(nameElementString);
+			if (nameTest != null)
+			{
+				XAttribute attributeTest = nameTest.Attribute(attributeAttribute);
+				if (attributeTest != null)
+				{
+					foundName = true;
+					string textureBasename = attributeTest.Value.Replace("&quot;", "").Replace("\"", "").TrimStart(new char[] { '_' });
+					List<XElement> geometrySections;
+					if (!osgGeometrySections.geometryDict.TryGetValue(textureBasename, out geometrySections))
+					{
+						geometrySections = new List<XElement>();
+						osgGeometrySections.geometryDict.Add(textureBasename, geometrySections);
+					}
+					geometrySections.AddRange(osgGroup.Descendants(osgGeometry));
+				}
+			}
+
+			//recursive branch
+			if (!foundName)
+			{
+				foreach(var g in GetNextOsgGroups(osgGroup))
+				{
+					GetGeometryRecursive(g, ref osgGeometrySections);
+				}
+			}
+		}
+
+		private OsgGeometrySections GetOsgGeometrySections(XElement root)
+		{
+			XElement matrixTransformElement = root.Element(osgMatrixTransform);
+			if (matrixTransformElement == null)
+			{
+				Logger.Error("matrixTransformElement is null");
+				return OsgGeometrySections.fail;
+			}
+
+			OsgGeometrySections osgGeometrySections = new OsgGeometrySections();
+
+			GetGeometryRecursive(matrixTransformElement, ref osgGeometrySections);
+
+			return osgGeometrySections;
+		}
+
+
 		private async Task<MeshConversionResult> ConvertOsgxToObjAsync(
 			string inputOsgxPath, 
 			string inputRgbDirectory, 
@@ -213,106 +328,116 @@ namespace MiplMeshToObj
 			try
 			{
 
-				List<string> textureBasenames = new List<string>();
+				
 				XElement root = XElement.Load(inputOsgxPath);
 
-				XElement matrixTransformElement = root.Element("osg--MatrixTransform");
-				if (matrixTransformElement == null)
+				OsgGeometrySections osgGeometrySections = GetOsgGeometrySections(root);
+
+				if (!osgGeometrySections.Success)
 				{
-					Logger.Error("matrixTransformElement is null");
 					return MeshConversionResult.fail;
 				}
-				XElement nextMatrixTransformElement = matrixTransformElement.Element("Children").Element("osg--Group").Element("Children").Element("osg--MatrixTransform");
-				while (nextMatrixTransformElement != null)
-				{
-					Logger.Log("found another matrixTransformElement");
-					matrixTransformElement = nextMatrixTransformElement;
-					nextMatrixTransformElement = matrixTransformElement.Element("Children").Element("osg--Group").Element("Children").Element("osg--MatrixTransform");
-				}
-				foreach (XElement firstGroupElement in matrixTransformElement.Element("Children").Elements("osg--Group").ToArray())
-				{
-					Logger.Log("firstGroupElement");
-					//XElement parent = firstGroupElement;
-					//XElement firstGroupElementMatrixTransformElement = parent.Element("Children").Element("osg--MatrixTransform");
-					//while (firstGroupElementMatrixTransformElement != null)
-					//{
-					//	Logger.Log("found another matrixTransformElement");
-					//	parent = firstGroupElementMatrixTransformElement;
-					//	firstGroupElementMatrixTransformElement = parent.Element("Children").Element("osg--MatrixTransform");
-					//}
-					foreach (XElement secondGroupElement in firstGroupElement.Element("Children").Elements("osg--Group").ToArray())
-					{
-						Logger.Log("secondGroupElement");
-						//Abort this if it's empty.  Check the number of geometry sections
-						if (secondGroupElement.Descendants("osg--Geometry").Count() == 0)
-						{
-							Logger.Log("osg--Geometry.Count() == 0, continuing");
-							continue;
-						}
 
-						//MER osgx files have osg--LOD sections as the 3rd level, MSL skips those.
-						XElement[] lods;
-						XElement[] testLods = secondGroupElement.Element("Children").Elements("osg--LOD").ToArray();
-						if (testLods.Length > 0)
-						{
-							Logger.Log("setting lods to osg--LOD children");
-							lods = testLods;
-						}
-						else
-						{
-							//if no LODs, make a placeholder lod array just containing the second group element
-							Logger.Log("setting lods to secondGroupElement");
-							lods = new XElement[] { secondGroupElement };
-						}
-
-						foreach (XElement lodElement in lods)
-						{
-							Logger.Log("lod element");
-							foreach (XElement thirdGroupElement in lodElement.Element("Children").Elements("osg--Group").ToArray())
-							{
-								Logger.Log("thirdGroupElement");
-								//Abort this if it's empty.  Check the number of geometry sections
-								if (thirdGroupElement.Descendants("osg--Geometry").Count() == 0)
-								{
-									Logger.Log("no geometry, continuing");
-									continue;
-								}
-
-								//MER osgx files have osg--LOD sections as the 3rd level, MSL skips those.
-								XElement[] lods2;
-								XElement[] testLods2 = thirdGroupElement.Element("Children").Elements("osg--LOD").ToArray();
-								if (testLods.Length > 0)
-								{
-									Logger.Log("setting lods to osg--LOD children");
-									lods2 = testLods2;
-								}
-								else
-								{
-									//if no LODs, make a placeholder lod array just containing the second group element
-									Logger.Log("setting lods to secondGroupElement");
-									lods2 = new XElement[] { thirdGroupElement };
-								}
-
-								foreach (XElement lodElement2 in lods2)
-								{
-									foreach (XElement fourthGroupElement in lodElement2.Element("Children").Elements("osg--Group").ToArray())
-									{
-										Logger.Log("fourthGroupElement");
-										//This group element has the texture name. grab it.
-										string t = fourthGroupElement.Element("Name").Attribute("attribute").Value.Replace("&quot;", "").Replace("\"", "").TrimStart(new char[] { '_' });
-										if (!textureBasenames.Contains(t))
-										{
-											Logger.Log("Texture: {0}", t);
-											textureBasenames.Add(t);
-										}
-									}
-								}
-							}
-						}
+				List<string> textureBasenames = osgGeometrySections.geometryDict.Keys.ToList();
 
 
-					}
-				}
+				//XElement matrixTransformElement = root.Element("osg--MatrixTransform");
+				//if (matrixTransformElement == null)
+				//{
+				//	Logger.Error("matrixTransformElement is null");
+				//	return MeshConversionResult.fail;
+				//}
+				//XElement nextMatrixTransformElement = matrixTransformElement.Element("Children").Element("osg--Group").Element("Children").Element("osg--MatrixTransform");
+				//while (nextMatrixTransformElement != null)
+				//{
+				//	Logger.Log("found another matrixTransformElement");
+				//	matrixTransformElement = nextMatrixTransformElement;
+				//	nextMatrixTransformElement = matrixTransformElement.Element("Children").Element("osg--Group").Element("Children").Element("osg--MatrixTransform");
+				//}
+				//foreach (XElement firstGroupElement in matrixTransformElement.Element("Children").Elements("osg--Group").ToArray())
+				//{
+				//	Logger.Log("firstGroupElement");
+				//	//XElement parent = firstGroupElement;
+				//	//XElement firstGroupElementMatrixTransformElement = parent.Element("Children").Element("osg--MatrixTransform");
+				//	//while (firstGroupElementMatrixTransformElement != null)
+				//	//{
+				//	//	Logger.Log("found another matrixTransformElement");
+				//	//	parent = firstGroupElementMatrixTransformElement;
+				//	//	firstGroupElementMatrixTransformElement = parent.Element("Children").Element("osg--MatrixTransform");
+				//	//}
+				//	foreach (XElement secondGroupElement in firstGroupElement.Element("Children").Elements("osg--Group").ToArray())
+				//	{
+				//		Logger.Log("secondGroupElement");
+				//		//Abort this if it's empty.  Check the number of geometry sections
+				//		if (secondGroupElement.Descendants("osg--Geometry").Count() == 0)
+				//		{
+				//			Logger.Log("osg--Geometry.Count() == 0, continuing");
+				//			continue;
+				//		}
+
+				//		//MER osgx files have osg--LOD sections as the 3rd level, MSL skips those.
+				//		XElement[] lods;
+				//		XElement[] testLods = secondGroupElement.Element("Children").Elements("osg--LOD").ToArray();
+				//		if (testLods.Length > 0)
+				//		{
+				//			Logger.Log("setting lods to osg--LOD children");
+				//			lods = testLods;
+				//		}
+				//		else
+				//		{
+				//			//if no LODs, make a placeholder lod array just containing the second group element
+				//			Logger.Log("setting lods to secondGroupElement");
+				//			lods = new XElement[] { secondGroupElement };
+				//		}
+
+				//		foreach (XElement lodElement in lods)
+				//		{
+				//			Logger.Log("lod element");
+				//			foreach (XElement thirdGroupElement in lodElement.Element("Children").Elements("osg--Group").ToArray())
+				//			{
+				//				Logger.Log("thirdGroupElement");
+				//				//Abort this if it's empty.  Check the number of geometry sections
+				//				if (thirdGroupElement.Descendants("osg--Geometry").Count() == 0)
+				//				{
+				//					Logger.Log("no geometry, continuing");
+				//					continue;
+				//				}
+
+				//				//MER osgx files have osg--LOD sections as the 3rd level, MSL skips those.
+				//				XElement[] lods2;
+				//				XElement[] testLods2 = thirdGroupElement.Element("Children").Elements("osg--LOD").ToArray();
+				//				if (testLods.Length > 0)
+				//				{
+				//					Logger.Log("setting lods to osg--LOD children");
+				//					lods2 = testLods2;
+				//				}
+				//				else
+				//				{
+				//					//if no LODs, make a placeholder lod array just containing the second group element
+				//					Logger.Log("setting lods to secondGroupElement");
+				//					lods2 = new XElement[] { thirdGroupElement };
+				//				}
+
+				//				foreach (XElement lodElement2 in lods2)
+				//				{
+				//					foreach (XElement fourthGroupElement in lodElement2.Element("Children").Elements("osg--Group").ToArray())
+				//					{
+				//						Logger.Log("fourthGroupElement");
+				//						//This group element has the texture name. grab it.
+				//						string t = fourthGroupElement.Element("Name").Attribute("attribute").Value.Replace("&quot;", "").Replace("\"", "").TrimStart(new char[] { '_' });
+				//						if (!textureBasenames.Contains(t))
+				//						{
+				//							Logger.Log("Texture: {0}", t);
+				//							textureBasenames.Add(t);
+				//						}
+				//					}
+				//				}
+				//			}
+				//		}
+
+
+				//	}
+				//}
 
 
 
@@ -378,294 +503,537 @@ namespace MiplMeshToObj
 
 				//currentTileNumber = 0;
 
-				foreach (XElement firstGroupElement in matrixTransformElement.Element("Children").Elements("osg--Group").ToArray())
-				{
 
-					foreach (XElement secondGroupElement in firstGroupElement.Element("Children").Elements("osg--Group").ToArray())
+				foreach (string textureBasename in osgGeometrySections.geometryDict.Keys)
+				{
+					if (cancellationToken.IsCancellationRequested)
 					{
-						//Abort this if it's empty.  Check the number of geometry sections
-						if (secondGroupElement.Descendants("osg--Geometry").Count() == 0)
+						Logger.Log("Cancellation requested.");
+						return MeshConversionResult.fail;
+					}
+
+					foreach (XElement geometry in osgGeometrySections.geometryDict[textureBasename])
+					{
+
+						Logger.Log("getting vertex data");
+						//vertex data
+						XAttribute textAttribute = geometry.Element("VertexData").Element("Array").Element("ArrayID").Attribute("text");
+						if (textAttribute == null)
 						{
+							//no data here, continue
 							continue;
+						}
+						string[] vertexStrvec = textAttribute.Value.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+						if (vertexStrvec.Length % 3 != 0)
+						{
+							Logger.Error("Vertex data strvec length is not a multiple of 3");
+						}
+						Logger.Log("vertexStrvec first element is {0}, length is {1}", vertexStrvec[0], vertexStrvec.Length);
+						int numVertices = vertexStrvec.Length / 3;
+						Vector3[] vertexArray = new Vector3[numVertices];
+
+						List<int> indicesList = new List<int>();
+						List<Vector3> verticesList = new List<Vector3>();
+						List<int> trianglesList = new List<int>();
+						Dictionary<double, int> indexCacheDict = new Dictionary<double, int>();
+						for (int i = 0; i < vertexStrvec.Length; i += 3)
+						{
+							if (cancellationToken.IsCancellationRequested)
+							{
+								Logger.Log("Cancellation requested.");
+								return MeshConversionResult.fail;
+							}
+
+							float c1 = Convert.ToSingle(vertexStrvec[i]);
+							float c2 = Convert.ToSingle(vertexStrvec[i + 1]);
+							float c3 = Convert.ToSingle(vertexStrvec[i + 2]);
+
+							vertexArray[i / 3] = new Vector3(c1, c2, c3);//.ToCoordinateSystem(CoordinateSystem.SAE, CoordinateSystem.UNITY);
+
+							double hash = (double)c1;
+							hash = hash * 13 + c2;
+							hash = hash * 13 + c3;
+
+							//see if we already have this vertex.  This is time consuming for large vertexStrvec.Length!
+							int indexof = -1;
+							if (indexCacheDict.TryGetValue(hash, out indexof))
+							{
+								trianglesList.Add(indexof);
+							}
+							else
+							{
+								indicesList.Add(i / 3);
+								verticesList.Add(vertexArray[i / 3]);
+								trianglesList.Add(verticesList.Count() - 1);
+								indexCacheDict.Add(hash, verticesList.Count() - 1);
+							}
+
+
+						}
+
+						Logger.Log("Done parsing coordinate lists.");
+
+						//see if we have triangles listed more than once, and if so, remove duplicates
+						//also remove degenerates (triangles with 2 of the same vertex)
+						List<Triangle> uniqueTriangleStructList = new List<Triangle>();
+						for (int i = 0; i < trianglesList.Count - 2; i += 3)
+						{
+							Triangle t = new Triangle(trianglesList[i], trianglesList[i + 1], trianglesList[i + 2]);
+
+							uniqueTriangleStructList.Add(t);
 						}
 
 
-						//MER osgx files have osg--LOD sections as the 3rd level, MSL skips those.
-						XElement[] lods;
-						XElement[] testLods = secondGroupElement.Element("Children").Elements("osg--LOD").ToArray();
-						if (testLods.Length > 0)
+						int[] trianglesArray;
+						int maxTriangle = 0;
+						if (uniqueTriangleStructList.Count * 3 < trianglesList.Count || flipTriangleOrderingForCorrectNormal)
 						{
-							lods = testLods;
+							Logger.Log("Found {0} duplicate and/or degenerate triangles", (trianglesList.Count / 3 - uniqueTriangleStructList.Count));
+
+							trianglesArray = new int[uniqueTriangleStructList.Count * 3];
+							int i = 0;
+							foreach (Triangle t in uniqueTriangleStructList)
+							{
+								if (flipTriangleOrderingForCorrectNormal)
+								{
+									trianglesArray[i++] = t.v1;
+									trianglesArray[i++] = t.v3;
+									trianglesArray[i++] = t.v2;
+								}
+								else
+								{
+									trianglesArray[i++] = t.v1;
+									trianglesArray[i++] = t.v2;
+									trianglesArray[i++] = t.v3;
+								}
+
+								maxTriangle = maxTriangle < t.v1 ? t.v1 : maxTriangle;
+								maxTriangle = maxTriangle < t.v2 ? t.v2 : maxTriangle;
+								maxTriangle = maxTriangle < t.v3 ? t.v3 : maxTriangle;
+							}
+
 						}
 						else
 						{
-							//if no LODs, make a fake lod array just containing the second group element
-							lods = new XElement[] { secondGroupElement };
+							trianglesArray = trianglesList.ToArray();
+						}
+						uniqueTriangleStructList = null;
+
+
+
+
+						if (vertexArray.Length % 3 != 0)
+						{
+							Logger.Error("There are not a multiple of 3 number of vertices listed in the osgx file. How should I make triangles?");
 						}
 
-						foreach (XElement lodElement in lods)
+						if (maxTriangle > verticesList.Count())
 						{
-							foreach (XElement thirdGroupElement in lodElement.Element("Children").Elements("osg--Group").ToArray())
-							{
-								//Abort this if it's empty.  Check the number of geometry sections
-								if (thirdGroupElement.Descendants("osg--Geometry").Count() == 0)
-								{
-									continue;
-								}
+							Logger.Error("triangles max vertex index {0}, number of vertices {1}", maxTriangle, verticesList.Count());
+						}
 
 
-								foreach (XElement fourthGroupElement in thirdGroupElement.Element("Children").Elements("osg--Group").ToArray())
-								{
-									//get the texture basename, and get rid of extra quote things, and trim off the leading underscore
-									string textureBasename = fourthGroupElement.Element("Name").Attribute("attribute").Value.Replace("&quot;", "").Replace("\"", "").TrimStart(new char[] { '_' });
-
-									foreach (XElement geometry in fourthGroupElement.Descendants("osg--Geometry"))
-									{
+						Logger.Log("Vertices parsed.  triangle  max vertex index {0}, number of vertices {1}", maxTriangle, verticesList.Count());
 
 
-										if (cancellationToken.IsCancellationRequested)
-										{
-											Logger.Log("Cancellation requested.");
-											return MeshConversionResult.fail;
-										}
+						if (cancellationToken.IsCancellationRequested)
+						{
+							Logger.Log("Cancellation requested.");
+							return MeshConversionResult.fail;
+						}
+
+						//normals
+						string[] normalStrvec =
+							geometry
+							.Element("NormalData")
+							.Element("Array")
+							.Element("ArrayID")
+							.Attribute("text")
+							.Value
+							.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+
+						if (normalStrvec.Length % 3 != 0)
+						{
+							Logger.Error("Normal data strvec length is not a multiple of 3");
+						}
+						else if (normalStrvec.Length != vertexStrvec.Length)
+						{
+							Logger.Error("normalStrvec.Length {0} is not equal to vertexStrvec.Length {1}", normalStrvec.Length, vertexStrvec.Length);
+						}
 
 
+						Vector3[] normalArray = new Vector3[numVertices];
+						for (int i = 0; i < normalStrvec.Length; i += 3)
+						{
 
-										Logger.Log("getting vertex data");
-										//vertex data
-										XAttribute textAttribute = geometry.Element("VertexData").Element("Array").Element("ArrayID").Attribute("text");
-										if (textAttribute == null)
-										{
-											//no data here, continue
-											continue;
-										}
-										string[] vertexStrvec = textAttribute.Value.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-										if (vertexStrvec.Length % 3 != 0)
-										{
-											Logger.Error("Vertex data strvec length is not a multiple of 3");
-										}
-										Logger.Log("vertexStrvec first element is {0}, length is {1}", vertexStrvec[0], vertexStrvec.Length);
-										int numVertices = vertexStrvec.Length / 3;
-										Vector3[] vertexArray = new Vector3[numVertices];
-
-										List<int> indicesList = new List<int>();
-										List<Vector3> verticesList = new List<Vector3>();
-										List<int> trianglesList = new List<int>();
-										Dictionary<double, int> indexCacheDict = new Dictionary<double, int>();
-										for (int i = 0; i < vertexStrvec.Length; i += 3)
-										{
-											if (cancellationToken.IsCancellationRequested)
-											{
-												Logger.Log("Cancellation requested.");
-												return MeshConversionResult.fail;
-											}
-
-											float c1 = Convert.ToSingle(vertexStrvec[i]);
-											float c2 = Convert.ToSingle(vertexStrvec[i + 1]);
-											float c3 = Convert.ToSingle(vertexStrvec[i + 2]);
-
-											vertexArray[i / 3] = new Vector3(c1, c2, c3);//.ToCoordinateSystem(CoordinateSystem.SAE, CoordinateSystem.UNITY);
-
-											double hash = (double)c1;
-											hash = hash * 13 + c2;
-											hash = hash * 13 + c3;
-
-											//see if we already have this vertex.  This is time consuming for large vertexStrvec.Length!
-											int indexof = -1;
-											if (indexCacheDict.TryGetValue(hash, out indexof))
-											{
-												trianglesList.Add(indexof);
-											}
-											else
-											{
-												indicesList.Add(i / 3);
-												verticesList.Add(vertexArray[i / 3]);
-												trianglesList.Add(verticesList.Count() - 1);
-												indexCacheDict.Add(hash, verticesList.Count() - 1);
-											}
+							float c1 = Convert.ToSingle(normalStrvec[i]);
+							float c2 = Convert.ToSingle(normalStrvec[i + 1]);
+							float c3 = Convert.ToSingle(normalStrvec[i + 2]);
+							normalArray[i / 3] = new Vector3(c1, c2, c3);//.ToCoordinateSystem(CoordinateSystem.SAE, CoordinateSystem.UNITY);
+						}
 
 
-										}
-
-										Logger.Log("Done parsing coordinate lists.");
-										
-										//see if we have triangles listed more than once, and if so, remove duplicates
-										//also remove degenerates (triangles with 2 of the same vertex)
-										List<Triangle> uniqueTriangleStructList = new List<Triangle>();
-										for (int i = 0; i < trianglesList.Count - 2; i += 3)
-										{
-											Triangle t = new Triangle(trianglesList[i], trianglesList[i + 1], trianglesList[i + 2]);
-
-											uniqueTriangleStructList.Add(t);
-										}
+						Vector3[] normals = new Vector3[verticesList.Count];
+						for (int i = 0; i < indicesList.Count; i++)
+						{
+							normals[i] = normalArray[indicesList[i]];
+						}
 
 
-										int[] trianglesArray;
-										int maxTriangle = 0;
-										if (uniqueTriangleStructList.Count * 3 < trianglesList.Count || flipTriangleOrderingForCorrectNormal)
-										{
-											Logger.Log("Found {0} duplicate and/or degenerate triangles", (trianglesList.Count / 3 - uniqueTriangleStructList.Count));
-
-											trianglesArray = new int[uniqueTriangleStructList.Count * 3];
-											int i = 0;
-											foreach (Triangle t in uniqueTriangleStructList)
-											{
-												if (flipTriangleOrderingForCorrectNormal)
-												{
-													trianglesArray[i++] = t.v1;
-													trianglesArray[i++] = t.v3;
-													trianglesArray[i++] = t.v2;
-												}
-												else
-												{
-													trianglesArray[i++] = t.v1;
-													trianglesArray[i++] = t.v2;
-													trianglesArray[i++] = t.v3;
-												}
-
-												maxTriangle = maxTriangle < t.v1 ? t.v1 : maxTriangle;
-												maxTriangle = maxTriangle < t.v2 ? t.v2 : maxTriangle;
-												maxTriangle = maxTriangle < t.v3 ? t.v3 : maxTriangle;
-											}
-
-										}
-										else
-										{
-											trianglesArray = trianglesList.ToArray();
-										}
-										uniqueTriangleStructList = null;
+						Logger.Log("Normals parsed.");
 
 
+						if (cancellationToken.IsCancellationRequested)
+						{
+							Logger.Log("Cancellation requested.");
+							return MeshConversionResult.fail;
+						}
+
+						//uv
+						string[] textureStrvec = geometry.Element("TexCoordData").Element("Data").
+							Element("Array").Element("ArrayID").Attribute("text").Value.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+						if (textureStrvec.Length % 2 != 0)
+						{
+							Logger.Error("Texture uv data strvec length is not a multiple of 2");
+						}
+						if (textureStrvec.Length / 2 != numVertices)
+						{
+							Logger.Error("Texture uv datalength is not the same as num vertices. texCoords: {0}, vertices {1}",
+								textureStrvec.Length / 2, numVertices);
+						}
+						Vector2[] uvArray = new Vector2[textureStrvec.Length / 2];
+						for (int i = 0; i < textureStrvec.Length; i += 2)
+						{
+
+							float c1 = Convert.ToSingle(textureStrvec[i]);
+							float c2 = Convert.ToSingle(textureStrvec[i + 1]);
+							uvArray[i / 2] = new Vector2(c1, c2);
+							//uvArray[i / 2] = new Vector2(c2, c1);
+						}
+
+						Vector2[] uvs = new Vector2[verticesList.Count];
+						for (int i = 0; i < indicesList.Count; i++)
+						{
+							uvs[i] = uvArray[indicesList[i]];
+						}
 
 
-										if (vertexArray.Length % 3 != 0)
-										{
-											Logger.Error("There are not a multiple of 3 number of vertices listed in the osgx file. How should I make triangles?");
-										}
+						Logger.Log("uv parsed.");
 
-										if (maxTriangle > verticesList.Count())
-										{
-											Logger.Error("triangles max vertex index {0}, number of vertices {1}", maxTriangle, verticesList.Count());
-										}
+						Logger.Log("Initialized Geometry section. currentNumVertices {0}, unique vertices {1}", numVertices, verticesList.Count);
 
 
-										Logger.Log("Vertices parsed.  triangle  max vertex index {0}, number of vertices {1}", maxTriangle, verticesList.Count());
+						if (cancellationToken.IsCancellationRequested)
+						{
+							Logger.Log("Cancellation requested.");
+							return MeshConversionResult.fail;
+						}
 
-									
-										if (cancellationToken.IsCancellationRequested)
-										{
-											Logger.Log("Cancellation requested.");
-											return MeshConversionResult.fail;
-										}
+						//Now that we've parsed everything we need for this geometry section, process it.
+						//							ProcessGeometry();
+						MeshImageTile meshImageTile;
+						if (textureBasenameToMeshSectionDict.TryGetValue(textureBasename, out meshImageTile))
+						{
+							Vector3[] vArray = verticesList.ToArray();
 
-										//normals
-										string[] normalStrvec = 
-											geometry
-											.Element("NormalData")
-											.Element("Array")
-											.Element("ArrayID")
-											.Attribute("text")
-											.Value
-											.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-
-										if (normalStrvec.Length % 3 != 0)
-										{
-											Logger.Error("Normal data strvec length is not a multiple of 3");
-										}
-										else if (normalStrvec.Length != vertexStrvec.Length)
-										{
-											Logger.Error("normalStrvec.Length {0} is not equal to vertexStrvec.Length {1}", normalStrvec.Length, vertexStrvec.Length);
-										}
-
-
-										Vector3[] normalArray = new Vector3[numVertices];
-										for (int i = 0; i < normalStrvec.Length; i += 3)
-										{
-
-											float c1 = Convert.ToSingle(normalStrvec[i]);
-											float c2 = Convert.ToSingle(normalStrvec[i + 1]);
-											float c3 = Convert.ToSingle(normalStrvec[i + 2]);
-											normalArray[i / 3] = new Vector3(c1, c2, c3);//.ToCoordinateSystem(CoordinateSystem.SAE, CoordinateSystem.UNITY);
-										}
-										
-
-										Vector3[] normals = new Vector3[verticesList.Count];
-										for (int i = 0; i < indicesList.Count; i++)
-										{
-											normals[i] = normalArray[indicesList[i]];
-										}
-
-
-										Logger.Log("Normals parsed.");
-
-
-										if (cancellationToken.IsCancellationRequested)
-										{
-											Logger.Log("Cancellation requested.");
-											return MeshConversionResult.fail;
-										}
-
-										//uv
-										string[] textureStrvec = geometry.Element("TexCoordData").Element("Data").
-											Element("Array").Element("ArrayID").Attribute("text").Value.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-										if (textureStrvec.Length % 2 != 0)
-										{
-											Logger.Error("Texture uv data strvec length is not a multiple of 2");
-										}
-										if (textureStrvec.Length / 2 != numVertices)
-										{
-											Logger.Error("Texture uv datalength is not the same as num vertices. texCoords: {0}, vertices {1}",
-												textureStrvec.Length / 2, numVertices);
-										}
-										Vector2[] uvArray = new Vector2[textureStrvec.Length / 2];
-										for (int i = 0; i < textureStrvec.Length; i += 2)
-										{
-
-											float c1 = Convert.ToSingle(textureStrvec[i]);
-											float c2 = Convert.ToSingle(textureStrvec[i + 1]);
-											uvArray[i / 2] = new Vector2(c1, c2);
-											//uvArray[i / 2] = new Vector2(c2, c1);
-										}
-
-										Vector2[] uvs = new Vector2[verticesList.Count];
-										for (int i = 0; i < indicesList.Count; i++)
-										{
-											uvs[i] = uvArray[indicesList[i]];
-										}
-
-
-										Logger.Log("uv parsed.");
-
-										Logger.Log("Initialized Geometry section. currentNumVertices {0}, unique vertices {1}", numVertices, verticesList.Count);
-
-
-										if (cancellationToken.IsCancellationRequested)
-										{
-											Logger.Log("Cancellation requested.");
-											return MeshConversionResult.fail;
-										}
-
-										//Now that we've parsed everything we need for this geometry section, process it.
-										//							ProcessGeometry();
-										MeshImageTile meshImageTile;
-										if (textureBasenameToMeshSectionDict.TryGetValue(textureBasename, out meshImageTile))
-										{
-											Vector3[] vArray = verticesList.ToArray();
-
-											meshImageTile.AddData(ref vArray, ref normals, ref uvs, ref trianglesArray);
-										}
-										else
-										{
-											Logger.Error("MeshSection doesn't exist in dictionary for textureBasename {0}", textureBasename);
-										}
-
-									}
-								}
-							}
+							meshImageTile.AddData(ref vArray, ref normals, ref uvs, ref trianglesArray);
+						}
+						else
+						{
+							Logger.Error("MeshSection doesn't exist in dictionary for textureBasename {0}", textureBasename);
 						}
 					}
-
 				}
+
+
+				//foreach (XElement firstGroupElement in matrixTransformElement.Element("Children").Elements("osg--Group").ToArray())
+				//{
+
+				//	foreach (XElement secondGroupElement in firstGroupElement.Element("Children").Elements("osg--Group").ToArray())
+				//	{
+				//		//Abort this if it's empty.  Check the number of geometry sections
+				//		if (secondGroupElement.Descendants("osg--Geometry").Count() == 0)
+				//		{
+				//			continue;
+				//		}
+
+
+				//		//MER osgx files have osg--LOD sections as the 3rd level, MSL skips those.
+				//		XElement[] lods;
+				//		XElement[] testLods = secondGroupElement.Element("Children").Elements("osg--LOD").ToArray();
+				//		if (testLods.Length > 0)
+				//		{
+				//			lods = testLods;
+				//		}
+				//		else
+				//		{
+				//			//if no LODs, make a fake lod array just containing the second group element
+				//			lods = new XElement[] { secondGroupElement };
+				//		}
+
+				//		foreach (XElement lodElement in lods)
+				//		{
+				//			foreach (XElement thirdGroupElement in lodElement.Element("Children").Elements("osg--Group").ToArray())
+				//			{
+				//				//Abort this if it's empty.  Check the number of geometry sections
+				//				if (thirdGroupElement.Descendants("osg--Geometry").Count() == 0)
+				//				{
+				//					continue;
+				//				}
+
+
+				//				foreach (XElement fourthGroupElement in thirdGroupElement.Element("Children").Elements("osg--Group").ToArray())
+				//				{
+				//					//get the texture basename, and get rid of extra quote things, and trim off the leading underscore
+				//					string textureBasename = fourthGroupElement.Element("Name").Attribute("attribute").Value.Replace("&quot;", "").Replace("\"", "").TrimStart(new char[] { '_' });
+
+				//					foreach (XElement geometry in fourthGroupElement.Descendants("osg--Geometry"))
+				//					{
+
+
+				//						if (cancellationToken.IsCancellationRequested)
+				//						{
+				//							Logger.Log("Cancellation requested.");
+				//							return MeshConversionResult.fail;
+				//						}
+
+
+
+				//						Logger.Log("getting vertex data");
+				//						//vertex data
+				//						XAttribute textAttribute = geometry.Element("VertexData").Element("Array").Element("ArrayID").Attribute("text");
+				//						if (textAttribute == null)
+				//						{
+				//							//no data here, continue
+				//							continue;
+				//						}
+				//						string[] vertexStrvec = textAttribute.Value.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+				//						if (vertexStrvec.Length % 3 != 0)
+				//						{
+				//							Logger.Error("Vertex data strvec length is not a multiple of 3");
+				//						}
+				//						Logger.Log("vertexStrvec first element is {0}, length is {1}", vertexStrvec[0], vertexStrvec.Length);
+				//						int numVertices = vertexStrvec.Length / 3;
+				//						Vector3[] vertexArray = new Vector3[numVertices];
+
+				//						List<int> indicesList = new List<int>();
+				//						List<Vector3> verticesList = new List<Vector3>();
+				//						List<int> trianglesList = new List<int>();
+				//						Dictionary<double, int> indexCacheDict = new Dictionary<double, int>();
+				//						for (int i = 0; i < vertexStrvec.Length; i += 3)
+				//						{
+				//							if (cancellationToken.IsCancellationRequested)
+				//							{
+				//								Logger.Log("Cancellation requested.");
+				//								return MeshConversionResult.fail;
+				//							}
+
+				//							float c1 = Convert.ToSingle(vertexStrvec[i]);
+				//							float c2 = Convert.ToSingle(vertexStrvec[i + 1]);
+				//							float c3 = Convert.ToSingle(vertexStrvec[i + 2]);
+
+				//							vertexArray[i / 3] = new Vector3(c1, c2, c3);//.ToCoordinateSystem(CoordinateSystem.SAE, CoordinateSystem.UNITY);
+
+				//							double hash = (double)c1;
+				//							hash = hash * 13 + c2;
+				//							hash = hash * 13 + c3;
+
+				//							//see if we already have this vertex.  This is time consuming for large vertexStrvec.Length!
+				//							int indexof = -1;
+				//							if (indexCacheDict.TryGetValue(hash, out indexof))
+				//							{
+				//								trianglesList.Add(indexof);
+				//							}
+				//							else
+				//							{
+				//								indicesList.Add(i / 3);
+				//								verticesList.Add(vertexArray[i / 3]);
+				//								trianglesList.Add(verticesList.Count() - 1);
+				//								indexCacheDict.Add(hash, verticesList.Count() - 1);
+				//							}
+
+
+				//						}
+
+				//						Logger.Log("Done parsing coordinate lists.");
+										
+				//						//see if we have triangles listed more than once, and if so, remove duplicates
+				//						//also remove degenerates (triangles with 2 of the same vertex)
+				//						List<Triangle> uniqueTriangleStructList = new List<Triangle>();
+				//						for (int i = 0; i < trianglesList.Count - 2; i += 3)
+				//						{
+				//							Triangle t = new Triangle(trianglesList[i], trianglesList[i + 1], trianglesList[i + 2]);
+
+				//							uniqueTriangleStructList.Add(t);
+				//						}
+
+
+				//						int[] trianglesArray;
+				//						int maxTriangle = 0;
+				//						if (uniqueTriangleStructList.Count * 3 < trianglesList.Count || flipTriangleOrderingForCorrectNormal)
+				//						{
+				//							Logger.Log("Found {0} duplicate and/or degenerate triangles", (trianglesList.Count / 3 - uniqueTriangleStructList.Count));
+
+				//							trianglesArray = new int[uniqueTriangleStructList.Count * 3];
+				//							int i = 0;
+				//							foreach (Triangle t in uniqueTriangleStructList)
+				//							{
+				//								if (flipTriangleOrderingForCorrectNormal)
+				//								{
+				//									trianglesArray[i++] = t.v1;
+				//									trianglesArray[i++] = t.v3;
+				//									trianglesArray[i++] = t.v2;
+				//								}
+				//								else
+				//								{
+				//									trianglesArray[i++] = t.v1;
+				//									trianglesArray[i++] = t.v2;
+				//									trianglesArray[i++] = t.v3;
+				//								}
+
+				//								maxTriangle = maxTriangle < t.v1 ? t.v1 : maxTriangle;
+				//								maxTriangle = maxTriangle < t.v2 ? t.v2 : maxTriangle;
+				//								maxTriangle = maxTriangle < t.v3 ? t.v3 : maxTriangle;
+				//							}
+
+				//						}
+				//						else
+				//						{
+				//							trianglesArray = trianglesList.ToArray();
+				//						}
+				//						uniqueTriangleStructList = null;
+
+
+
+
+				//						if (vertexArray.Length % 3 != 0)
+				//						{
+				//							Logger.Error("There are not a multiple of 3 number of vertices listed in the osgx file. How should I make triangles?");
+				//						}
+
+				//						if (maxTriangle > verticesList.Count())
+				//						{
+				//							Logger.Error("triangles max vertex index {0}, number of vertices {1}", maxTriangle, verticesList.Count());
+				//						}
+
+
+				//						Logger.Log("Vertices parsed.  triangle  max vertex index {0}, number of vertices {1}", maxTriangle, verticesList.Count());
+
+									
+				//						if (cancellationToken.IsCancellationRequested)
+				//						{
+				//							Logger.Log("Cancellation requested.");
+				//							return MeshConversionResult.fail;
+				//						}
+
+				//						//normals
+				//						string[] normalStrvec = 
+				//							geometry
+				//							.Element("NormalData")
+				//							.Element("Array")
+				//							.Element("ArrayID")
+				//							.Attribute("text")
+				//							.Value
+				//							.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+
+				//						if (normalStrvec.Length % 3 != 0)
+				//						{
+				//							Logger.Error("Normal data strvec length is not a multiple of 3");
+				//						}
+				//						else if (normalStrvec.Length != vertexStrvec.Length)
+				//						{
+				//							Logger.Error("normalStrvec.Length {0} is not equal to vertexStrvec.Length {1}", normalStrvec.Length, vertexStrvec.Length);
+				//						}
+
+
+				//						Vector3[] normalArray = new Vector3[numVertices];
+				//						for (int i = 0; i < normalStrvec.Length; i += 3)
+				//						{
+
+				//							float c1 = Convert.ToSingle(normalStrvec[i]);
+				//							float c2 = Convert.ToSingle(normalStrvec[i + 1]);
+				//							float c3 = Convert.ToSingle(normalStrvec[i + 2]);
+				//							normalArray[i / 3] = new Vector3(c1, c2, c3);//.ToCoordinateSystem(CoordinateSystem.SAE, CoordinateSystem.UNITY);
+				//						}
+										
+
+				//						Vector3[] normals = new Vector3[verticesList.Count];
+				//						for (int i = 0; i < indicesList.Count; i++)
+				//						{
+				//							normals[i] = normalArray[indicesList[i]];
+				//						}
+
+
+				//						Logger.Log("Normals parsed.");
+
+
+				//						if (cancellationToken.IsCancellationRequested)
+				//						{
+				//							Logger.Log("Cancellation requested.");
+				//							return MeshConversionResult.fail;
+				//						}
+
+				//						//uv
+				//						string[] textureStrvec = geometry.Element("TexCoordData").Element("Data").
+				//							Element("Array").Element("ArrayID").Attribute("text").Value.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+				//						if (textureStrvec.Length % 2 != 0)
+				//						{
+				//							Logger.Error("Texture uv data strvec length is not a multiple of 2");
+				//						}
+				//						if (textureStrvec.Length / 2 != numVertices)
+				//						{
+				//							Logger.Error("Texture uv datalength is not the same as num vertices. texCoords: {0}, vertices {1}",
+				//								textureStrvec.Length / 2, numVertices);
+				//						}
+				//						Vector2[] uvArray = new Vector2[textureStrvec.Length / 2];
+				//						for (int i = 0; i < textureStrvec.Length; i += 2)
+				//						{
+
+				//							float c1 = Convert.ToSingle(textureStrvec[i]);
+				//							float c2 = Convert.ToSingle(textureStrvec[i + 1]);
+				//							uvArray[i / 2] = new Vector2(c1, c2);
+				//							//uvArray[i / 2] = new Vector2(c2, c1);
+				//						}
+
+				//						Vector2[] uvs = new Vector2[verticesList.Count];
+				//						for (int i = 0; i < indicesList.Count; i++)
+				//						{
+				//							uvs[i] = uvArray[indicesList[i]];
+				//						}
+
+
+				//						Logger.Log("uv parsed.");
+
+				//						Logger.Log("Initialized Geometry section. currentNumVertices {0}, unique vertices {1}", numVertices, verticesList.Count);
+
+
+				//						if (cancellationToken.IsCancellationRequested)
+				//						{
+				//							Logger.Log("Cancellation requested.");
+				//							return MeshConversionResult.fail;
+				//						}
+
+				//						//Now that we've parsed everything we need for this geometry section, process it.
+				//						//							ProcessGeometry();
+				//						MeshImageTile meshImageTile;
+				//						if (textureBasenameToMeshSectionDict.TryGetValue(textureBasename, out meshImageTile))
+				//						{
+				//							Vector3[] vArray = verticesList.ToArray();
+
+				//							meshImageTile.AddData(ref vArray, ref normals, ref uvs, ref trianglesArray);
+				//						}
+				//						else
+				//						{
+				//							Logger.Error("MeshSection doesn't exist in dictionary for textureBasename {0}", textureBasename);
+				//						}
+
+				//					}
+				//				}
+				//			}
+				//		}
+				//	}
+
+				//}
 
 				string objFilename = Path.GetFileNameWithoutExtension(inputOsgxPath) + ".obj";
 				string mtlFilename = Path.GetFileNameWithoutExtension(inputOsgxPath) + ".mtl";
