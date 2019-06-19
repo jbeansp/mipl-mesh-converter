@@ -4,18 +4,18 @@ using System.IO;
 
 namespace MiplMeshToObj
 {
-	[JsonObject(MemberSerialization.OptIn)]
+	//[JsonObject(MemberSerialization.OptIn)]
 	class Configuration
 	{
 
 		private const string configFilename = "config.json";
 		private const string defaultAppPath = "/app";
 
-		[JsonProperty]
+		//[JsonProperty]
 		public string PfbToObj { get; private set; }
-		[JsonProperty]
+		//[JsonProperty]
 		public string PfbToOsgx { get; private set; }
-		[JsonProperty]
+		//[JsonProperty]
 		public string ConvertRgb { get; private set; }
 
 		/// <summary>
@@ -52,10 +52,10 @@ namespace MiplMeshToObj
 			Logger.Log($"Creating a config file with default values: {configPath}");
 			Configuration configuration = new Configuration();
 			string text = JsonConvert.SerializeObject(configuration, Newtonsoft.Json.Formatting.Indented);
-			Logger.Log(configuration.PfbToObj);
-			Logger.Log(configuration.PfbToOsgx);
-			Logger.Log(configuration.ConvertRgb);
-			Logger.Log(text);
+			//Logger.Log(configuration.PfbToObj);
+			//Logger.Log(configuration.PfbToOsgx);
+			//Logger.Log(configuration.ConvertRgb);
+			//Logger.Log(text);
 			File.WriteAllText(configPath, text);
 		}
 		
