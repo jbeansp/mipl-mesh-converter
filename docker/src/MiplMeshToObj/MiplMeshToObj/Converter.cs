@@ -76,10 +76,6 @@ namespace MiplMeshToObj
 			if (!result.success)
 				return MeshConversionResult.fail;
 
-
-			Logger.Log("ProcessMesh(): Done running pfb2Obj");
-			Logger.Log($"Memory: { (GC.GetTotalMemory(true) / 1024) } KB");
-
 			//Make sure everything went smoothly
 			if (!File.Exists(objFilePath))
 			{
@@ -90,6 +86,10 @@ namespace MiplMeshToObj
 			{
 				throw new FileNotFoundException(mtlFilePath, $"Error:  No mtl file exists after attempted conversion to obj.  Command run: {command} {args}");
 			}
+
+			Logger.Log("ConvertToObjAsync(): Done.");
+			Logger.Log($"Memory: { (GC.GetTotalMemory(true) / 1024) } KB");
+
 
 			return new MeshConversionResult(true, objFilePath);
 		}
@@ -109,17 +109,16 @@ namespace MiplMeshToObj
 			if (!result.success)
 				return MeshConversionResult.fail;
 
-
-			Logger.Log("ProcessMesh(): Done running pfb2Obj");
-			Logger.Log($"Memory: { (GC.GetTotalMemory(true) / 1024) } KB");
-
 			//Make sure everything went smoothly
 			if (!File.Exists(osgxFilePath))
 			{
 				throw new FileNotFoundException(osgxFilePath, $"Error:  No osgx file exists after attempted conversion to obj.  Command run: {command} {args}");
 			}
 
-			
+			Logger.Log("ConvertToOsgxAsync() Done.");
+			Logger.Log($"Memory: { (GC.GetTotalMemory(true) / 1024) } KB");
+
+
 			return new MeshConversionResult(true, osgxFilePath);
 		}
 
@@ -135,11 +134,6 @@ namespace MiplMeshToObj
 
 			CancellationToken cancellationToken = cts.Token;
 
-			//if (cancellationToken.IsCancellationRequested)
-			//{
-			//	Logger.Log("ProcessDataProducts(): Cancellation detected.  Throwing.");
-			//	throw (new OperationCanceledException());
-			//}
 
 			if (!Directory.Exists(inputInfo.outputDirectory))
 			{
@@ -148,7 +142,7 @@ namespace MiplMeshToObj
 
 			//Process differently if we are using OBJ or OSGX for the conversion
 			//use obj conversion for H meshes on MER, since they have no LODs and so their textures are handled differently in the osgx file
-			//i currently only have importMesh working for osgx with LOD levels
+			//I currently only have importMesh working for osgx with LOD levels
 			if (inputInfo.rover.ShouldConvertToOsgx(inputInfo.inputMeshPath))
 			{
 				var osgxResult = await ConvertToOsgxAsync(inputInfo.inputMeshPath, inputInfo.outputDirectory, cancellationToken).ConfigureAwait(false);
@@ -164,7 +158,7 @@ namespace MiplMeshToObj
 				//rgb files live next to the mesh on the /oss and /ods, and usually by convention meshes and their textures are in the same directory
 				string rgbDirectory = Path.GetDirectoryName(inputInfo.inputMeshPath);
 
-				var objResult = await ConvertOsgxToObjAsync(inputInfo.inputMeshPath, rgbDirectory, inputInfo.outputDirectory, cancellationToken).ConfigureAwait(false);
+				var objResult = await ConvertOsgxToObjAsync(osgxResult.outputMeshPath, rgbDirectory, inputInfo.outputDirectory, cancellationToken).ConfigureAwait(false);
 				if (!objResult.success)
 					return false;
 			}
