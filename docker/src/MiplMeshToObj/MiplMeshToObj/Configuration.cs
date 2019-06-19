@@ -42,8 +42,8 @@ namespace MiplMeshToObj
 		private Configuration()
 		{
 			//set some reasonable default values
-			PfbToObj = Path.Combine(defaultAppPath, "Pfb2Obj");
-			PfbToOsgx = Path.Combine(defaultAppPath, "Pfb2osgx");
+			PfbToObj = Path.Combine(defaultAppPath, "pfb2Obj");
+			PfbToOsgx = Path.Combine(defaultAppPath, "pfb2osgx");
 			ConvertRgb = "/usr/bin/convert";
 		}
 
