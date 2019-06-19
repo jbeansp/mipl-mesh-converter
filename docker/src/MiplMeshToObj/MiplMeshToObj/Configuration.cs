@@ -55,7 +55,7 @@ namespace MiplMeshToObj
 			Logger.Log(configuration.PfbToObj);
 			Logger.Log(configuration.PfbToOsgx);
 			Logger.Log(configuration.ConvertRgb);
-			Logger.Log(System.String.Format("{0}", text));
+			Logger.Log(text);
 			File.WriteAllText(configPath, text);
 		}
 		
