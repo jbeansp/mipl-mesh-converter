@@ -55,14 +55,15 @@ namespace MiplMeshToObj
 			//Logger.Log(configuration.PfbToObj);
 			//Logger.Log(configuration.PfbToOsgx);
 			//Logger.Log(configuration.ConvertRgb);
-			//Logger.Log(text);
+			Logger.Log(text);
 			File.WriteAllText(configPath, text);
 		}
 		
 		private	static Configuration ReadConfig(string configPath)
 		{
 			Logger.Log($"Loading config file: {configPath}");
-			return JsonConvert.DeserializeObject<Configuration>(configPath);
+			string text = File.ReadAllText(configPath);
+			return JsonConvert.DeserializeObject<Configuration>(text);
 		}
 
 	}
