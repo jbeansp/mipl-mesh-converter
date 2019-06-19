@@ -42,7 +42,7 @@ namespace MiplMeshToObj
 			}
 			this.configuration = configuration;
 
-			//UnixExitSignalMonitor.cancelEvent += (o, a) => { cts.Cancel(); };
+			UnixExitSignalMonitor.cancelEvent += (o, a) => { cts.Cancel(); };
 		}
 
 
