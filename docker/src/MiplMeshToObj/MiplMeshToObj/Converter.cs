@@ -218,6 +218,10 @@ namespace MiplMeshToObj
 
 				return osgGroups;
 			}
+			else if (testOsgGroup != null)
+			{
+				return testOsgGroup;
+			}
 
 			return new XElement[] { };
 		}
