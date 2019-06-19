@@ -1211,7 +1211,7 @@ namespace MiplMeshToObj
 
 					Logger.Log("processing {0}", basename);
 					//substring to take off version number.
-					string unprocessedImagePattern = basename.Substring(0, basename.Length - 1) + ".rgb";
+					string unprocessedImagePattern = basename.Substring(0, basename.Length - 1) + "*.rgb";
 
 					string[] unprocessedImageFiles = Directory.GetFiles(textureDirectory, unprocessedImagePattern, SearchOption.AllDirectories);
 					if (unprocessedImageFiles != null && unprocessedImageFiles.Length > 0)
