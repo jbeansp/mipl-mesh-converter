@@ -650,7 +650,7 @@ namespace MiplMeshToObj
 						List<int> indicesList = new List<int>();
 						List<Vector3> verticesList = new List<Vector3>();
 						List<int> trianglesList = new List<int>();
-						Dictionary<double, int> indexCacheDict = new Dictionary<double, int>();
+						//Dictionary<double, int> indexCacheDict = new Dictionary<double, int>();
 						for (int i = 0; i < vertexStrvec.Length; i += 3)
 						{
 							if (cancellationToken.IsCancellationRequested)
@@ -669,20 +669,23 @@ namespace MiplMeshToObj
 							hash = hash * 13 + c2;
 							hash = hash * 13 + c3;
 
-							//see if we already have this vertex.  This is time consuming for large vertexStrvec.Length!
-							int indexof = -1;
-							if (indexCacheDict.TryGetValue(hash, out indexof))
-							{
-								trianglesList.Add(indexof);
-							}
-							else
-							{
-								indicesList.Add(i / 3);
-								verticesList.Add(vertexArray[i / 3]);
-								trianglesList.Add(verticesList.Count() - 1);
-								indexCacheDict.Add(hash, verticesList.Count() - 1);
-							}
+							////see if we already have this vertex.  This is time consuming for large vertexStrvec.Length!
+							//int indexof = -1;
+							//if (indexCacheDict.TryGetValue(hash, out indexof))
+							//{
+							//	trianglesList.Add(indexof);
+							//}
+							//else
+							//{
+							//	indicesList.Add(i / 3);
+							//	verticesList.Add(vertexArray[i / 3]);
+							//	trianglesList.Add(verticesList.Count() - 1);
+							//	indexCacheDict.Add(hash, verticesList.Count() - 1);
+							//}
 
+							indicesList.Add(i / 3);
+							verticesList.Add(vertexArray[i / 3]);
+							trianglesList.Add(verticesList.Count() - 1);
 
 						}
 
