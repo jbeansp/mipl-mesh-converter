@@ -220,19 +220,27 @@ namespace MiplMeshToObj
 				if (matrixTransformElement == null)
 				{
 					Logger.Error("matrixTransformElement is null");
+					return MeshConversionResult.fail;
+				}
+				XElement nextMatrixTransformElement = matrixTransformElement.Element("Children").Element("osg--Group").Element("Children").Element("osg--MatrixTransform");
+				while (nextMatrixTransformElement != null)
+				{
+					Logger.Log("found another matrixTransformElement");
+					matrixTransformElement = nextMatrixTransformElement;
+					nextMatrixTransformElement = matrixTransformElement.Element("Children").Element("osg--Group").Element("Children").Element("osg--MatrixTransform");
 				}
 				foreach (XElement firstGroupElement in matrixTransformElement.Element("Children").Elements("osg--Group").ToArray())
 				{
 					Logger.Log("firstGroupElement");
-					XElement parent = firstGroupElement;
-					XElement firstGroupElementMatrixTransformElement = parent.Element("Children").Element("osg--MatrixTransform");
-					while (firstGroupElementMatrixTransformElement != null)
-					{
-						Logger.Log("found another matrixTransformElement");
-						parent = firstGroupElementMatrixTransformElement;
-						firstGroupElementMatrixTransformElement = parent.Element("Children").Element("osg--MatrixTransform");
-					}
-					foreach (XElement secondGroupElement in parent.Element("Children").Elements("osg--Group").ToArray())
+					//XElement parent = firstGroupElement;
+					//XElement firstGroupElementMatrixTransformElement = parent.Element("Children").Element("osg--MatrixTransform");
+					//while (firstGroupElementMatrixTransformElement != null)
+					//{
+					//	Logger.Log("found another matrixTransformElement");
+					//	parent = firstGroupElementMatrixTransformElement;
+					//	firstGroupElementMatrixTransformElement = parent.Element("Children").Element("osg--MatrixTransform");
+					//}
+					foreach (XElement secondGroupElement in firstGroupElement.Element("Children").Elements("osg--Group").ToArray())
 					{
 						Logger.Log("secondGroupElement");
 						//Abort this if it's empty.  Check the number of geometry sections
