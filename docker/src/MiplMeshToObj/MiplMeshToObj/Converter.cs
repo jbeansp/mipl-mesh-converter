@@ -225,12 +225,12 @@ namespace MiplMeshToObj
 				{
 					Logger.Log("firstGroupElement");
 					XElement parent = firstGroupElement;
-					XElement firstGroupElementMatrixTransformElement = parent.Element("osg--MatrixTransform");
+					XElement firstGroupElementMatrixTransformElement = parent.Element("Children").Element("osg--MatrixTransform");
 					while (firstGroupElementMatrixTransformElement != null)
 					{
 						Logger.Log("found another matrixTransformElement");
 						parent = firstGroupElementMatrixTransformElement;
-						firstGroupElementMatrixTransformElement = parent.Element("osg--MatrixTransform");
+						firstGroupElementMatrixTransformElement = parent.Element("Children").Element("osg--MatrixTransform");
 					}
 					foreach (XElement secondGroupElement in parent.Element("Children").Elements("osg--Group").ToArray())
 					{
