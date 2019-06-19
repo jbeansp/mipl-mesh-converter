@@ -42,7 +42,7 @@ namespace MiplMeshToObj
 			}
 			this.configuration = configuration;
 
-			UnixExitSignalMonitor.cancelEvent += (o, a) => { cts.Cancel(); };
+			//UnixExitSignalMonitor.cancelEvent += (o, a) => { cts.Cancel(); };
 		}
 
 
@@ -223,11 +223,14 @@ namespace MiplMeshToObj
 				}
 				foreach (XElement firstGroupElement in matrixTransformElement.Element("Children").Elements("osg--Group").ToArray())
 				{
+					Logger.Log("firstGroupElement");
 					foreach (XElement secondGroupElement in firstGroupElement.Element("Children").Elements("osg--Group").ToArray())
 					{
+						Logger.Log("secondGroupElement");
 						//Abort this if it's empty.  Check the number of geometry sections
 						if (secondGroupElement.Descendants("osg--Geometry").Count() == 0)
 						{
+							Logger.Log("osg--Geometry.Count() == 0, continuing");
 							continue;
 						}
 
@@ -236,26 +239,32 @@ namespace MiplMeshToObj
 						XElement[] testLods = secondGroupElement.Element("Children").Elements("osg--LOD").ToArray();
 						if (testLods.Length > 0)
 						{
+							Logger.Log("setting lods to osg--LOD children");
 							lods = testLods;
 						}
 						else
 						{
 							//if no LODs, make a placeholder lod array just containing the second group element
+							Logger.Log("setting lods to secondGroupElement");
 							lods = new XElement[] { secondGroupElement };
 						}
 
 						foreach (XElement lodElement in lods)
 						{
+							Logger.Log("lod element");
 							foreach (XElement thirdGroupElement in lodElement.Element("Children").Elements("osg--Group").ToArray())
 							{
+								Logger.Log("thirdGroupElement");
 								//Abort this if it's empty.  Check the number of geometry sections
 								if (thirdGroupElement.Descendants("osg--Geometry").Count() == 0)
 								{
+									Logger.Log("no geometry, continuing");
 									continue;
 								}
 
 								foreach (XElement fourthGroupElement in thirdGroupElement.Element("Children").Elements("osg--Group").ToArray())
 								{
+									Logger.Log("fourthGroupElement");
 									//This group element has the texture name. grab it.
 									string t = fourthGroupElement.Element("Name").Attribute("attribute").Value.Replace("&quot;", "").Replace("\"", "").TrimStart(new char[] { '_' });
 									if (!textureBasenames.Contains(t))
