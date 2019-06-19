@@ -29,7 +29,7 @@ if __name__ == '__main__':
 	args = parseArgv()
 
 	if args.mipl_mesh_path is not None:
-		miplMeshPath = args.mipl_mesh_path[0]
+		miplMeshPath = args.mipl_mesh_path
 	else:
 		print("No mipl_mesh_path given")
 		exit(1)
