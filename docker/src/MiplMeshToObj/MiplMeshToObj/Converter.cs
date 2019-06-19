@@ -143,7 +143,7 @@ namespace MiplMeshToObj
 			//Process differently if we are using OBJ or OSGX for the conversion
 			//use obj conversion for H meshes on MER, since they have no LODs and so their textures are handled differently in the osgx file
 			//I currently only have importMesh working for osgx with LOD levels
-			if (inputInfo.rover.ShouldConvertToOsgx(inputInfo.inputMeshPath))
+			if (false && inputInfo.rover.ShouldConvertToOsgx(inputInfo.inputMeshPath))
 			{
 				var osgxResult = await ConvertToOsgxAsync(inputInfo.inputMeshPath, inputInfo.outputDirectory, cancellationToken).ConfigureAwait(false);
 				if (!osgxResult.success)
@@ -559,23 +559,23 @@ namespace MiplMeshToObj
 						//vertex data
 
 						//There seem to be different kinds of osgx files.  Some have VertexData and others VertexArray, etc.
-						XAttribute textAttribute = null;
+						XAttribute vertexTextAttribute = null;
 						if (geometry.Element("VertexData") != null)
 						{
-							textAttribute = geometry.Element("VertexData").Element("Array").Element("ArrayID").Attribute("text");
+							vertexTextAttribute = geometry.Element("VertexData").Element("Array").Element("ArrayID").Attribute("text");
 						}
 						else if (geometry.Element("VertexArray") != null)
 						{
-							textAttribute = geometry.Element("VertexArray").Element("osg--Vec3Array").Element("vector").Attribute("text");
+							vertexTextAttribute = geometry.Element("VertexArray").Element("osg--Vec3Array").Element("vector").Attribute("text");
 						}
 						
-						if (textAttribute == null)
+						if (vertexTextAttribute == null)
 						{
 							//no data here, continue
 							Logger.Log("Couldn't find any vertices in this geometry section");
 							continue;
 						}
-						string[] vertexStrvec = textAttribute.Value.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+						string[] vertexStrvec = vertexTextAttribute.Value.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
 						if (vertexStrvec.Length % 3 != 0)
 						{
 							Logger.Error("Vertex data strvec length is not a multiple of 3");
