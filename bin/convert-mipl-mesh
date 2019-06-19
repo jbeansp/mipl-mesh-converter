@@ -38,11 +38,15 @@ if __name__ == '__main__':
 		print("file does not exist: %s" % miplMeshPath)
 		exit(1)
 
+	miplMeshPath = os.path.abspath(miplMeshPath)
+
 	if args.output_directory is not None:
 		outputDirectory = args.output_directory[0]
 	else:
 		print("No output_directory given")
 		exit(1)	
+
+	outputDirectory = os.path.abspath(outputDirectory)
 
 	if args.mer:
 		rover = "MER"
@@ -65,4 +69,8 @@ if __name__ == '__main__':
 	dockerInputPath = os.path.join(dockerInputDirectory, miplMeshFilename)
 	dockerImage = "mipl-mesh-converter"
 
+	print("Processing %s, and writing obj to %s" % (miplMeshPath, outputDirectory))
+
 	subprocess.call(['docker', 'run', '-it', '--mount', inputMountString, '--mount', outputMountString, dockerImage, dockerInputPath, dockerOutputDirectory, rover])
+
+	print("Done %s" % miplMeshPath)
