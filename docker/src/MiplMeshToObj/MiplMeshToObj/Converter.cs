@@ -769,7 +769,7 @@ namespace MiplMeshToObj
 					}
 
 					//substring to take off version number.
-					string unprocessedImagePattern = basename.Substring(0, basename.Length - 1) + ".png";
+					string unprocessedImagePattern = basename.Substring(0, basename.Length - 1) + ".rgb";
 
 					string[] unprocessedImageFiles = Directory.GetFiles(textureDirectory, unprocessedImagePattern, SearchOption.AllDirectories);
 					if (unprocessedImageFiles != null && unprocessedImageFiles.Length > 0)
@@ -778,7 +778,7 @@ namespace MiplMeshToObj
 						string unprocessedFile = unprocessedImageFiles.Length == 1 ? unprocessedImageFiles[0] : unprocessedImageFiles.OrderBy(x => x).Last();
 
 
-						string processedFilePathAbsolute = Path.Combine(outputDirectory, basename + ".jpg");
+						string processedFilePathAbsolute = Path.Combine(outputDirectory, basename + ".png");
 
 						if (!File.Exists(processedFilePathAbsolute))
 						{
