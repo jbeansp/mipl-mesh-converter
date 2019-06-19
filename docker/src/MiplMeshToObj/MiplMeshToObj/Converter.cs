@@ -240,8 +240,12 @@ namespace MiplMeshToObj
 		private void GetGeometryRecursive(XElement osgGroup, ref OsgGeometrySections osgGeometrySections)
 		{
 			if (!HasGeometryDescendants(osgGroup))
+			{
+				Logger.Log($"{osgGroup.Name.LocalName} has no geometry, skipping.");
 				return;
+			}
 
+			Logger.Log($"Examining {osgGroup.Name.LocalName}");
 			//see if we're at a texture level
 			bool foundName = false;
 			//only accept names from actual osg groups, not matrix transforms, lods, etc.
@@ -264,12 +268,25 @@ namespace MiplMeshToObj
 						}
 						geometrySections.AddRange(osgGroup.Descendants(osgGeometryField));
 					}
+					else
+					{
+						Logger.Log("attribute test is null");
+					}
 				}
+				else
+				{
+					Logger.Log("name test is null");
+				}
+			}
+			else
+			{
+				Logger.Log($"group is not {osgGroupField}");
 			}
 
 			//recursive branch
 			if (!foundName)
 			{
+				Logger.Log($"Found no name in {osgGroup.Name.LocalName}, looking deeper");
 				foreach(var g in GetNextOsgGroups(osgGroup))
 				{
 					GetGeometryRecursive(g, ref osgGeometrySections);
