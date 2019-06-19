@@ -91,7 +91,7 @@ namespace MiplMeshToObj
 			this.z = (double)z;
 		}
 
-	
+
 		public Vector3(double x, double y)
 		{
 			this.x = x;
@@ -167,6 +167,9 @@ namespace MiplMeshToObj
 		}
 
 
-
+		public Vector3 ToUnityCoordinateSystem()
+		{
+			return new Vector3(y, -z, x);
+		}
 	}
 }

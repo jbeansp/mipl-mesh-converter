@@ -143,7 +143,7 @@ namespace MiplMeshToObj
 			//Process differently if we are using OBJ or OSGX for the conversion
 			//use obj conversion for H meshes on MER, since they have no LODs and so their textures are handled differently in the osgx file
 			//I currently only have importMesh working for osgx with LOD levels
-			if (false && inputInfo.rover.ShouldConvertToOsgx(inputInfo.inputMeshPath))
+			if (inputInfo.rover.ShouldConvertToOsgx(inputInfo.inputMeshPath))
 			{
 				var osgxResult = await ConvertToOsgxAsync(inputInfo.inputMeshPath, inputInfo.outputDirectory, cancellationToken).ConfigureAwait(false);
 				if (!osgxResult.success)
@@ -600,7 +600,7 @@ namespace MiplMeshToObj
 							float c2 = Convert.ToSingle(vertexStrvec[i + 1]);
 							float c3 = Convert.ToSingle(vertexStrvec[i + 2]);
 
-							vertexArray[i / 3] = new Vector3(c1, c2, c3);//.ToCoordinateSystem(CoordinateSystem.SAE, CoordinateSystem.UNITY);
+							vertexArray[i / 3] = new Vector3(c1, c2, c3).ToUnityCoordinateSystem();//.ToCoordinateSystem(CoordinateSystem.SAE, CoordinateSystem.UNITY);
 
 							double hash = (double)c1;
 							hash = hash * 13 + c2;
@@ -740,7 +740,7 @@ namespace MiplMeshToObj
 							float c1 = Convert.ToSingle(normalStrvec[i]);
 							float c2 = Convert.ToSingle(normalStrvec[i + 1]);
 							float c3 = Convert.ToSingle(normalStrvec[i + 2]);
-							normalArray[i / 3] = new Vector3(c1, c2, c3);//.ToCoordinateSystem(CoordinateSystem.SAE, CoordinateSystem.UNITY);
+							normalArray[i / 3] = new Vector3(c1, c2, c3).ToUnityCoordinateSystem();//.ToCoordinateSystem(CoordinateSystem.SAE, CoordinateSystem.UNITY);
 						}
 
 
