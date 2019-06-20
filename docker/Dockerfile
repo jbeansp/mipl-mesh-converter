@@ -39,6 +39,9 @@ RUN \
 # make a 2nd stage, because it takes so long to compile the first stage.
 FROM converter-base AS converter
 
+RUN \
+	apt update \
+	&& apt install -y --no-install-recommends xauth
 
 WORKDIR /
 
