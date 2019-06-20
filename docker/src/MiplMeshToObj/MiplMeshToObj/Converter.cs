@@ -602,6 +602,12 @@ namespace MiplMeshToObj
 
 						Logger.Log("Done parsing vertices.");
 
+						//It looks like all LODs are at the same depth and have different centers.  So not sure if there are actually
+						//different LODs or how to recognize them is they exist.
+						//Logger.Log(
+						//	$"{textureBasename}: lods? {geometry.Ancestors().Where(x => x.Name.LocalName == osgLodField).Count() > 0} " +
+						//	$"depth {geometry.Ancestors().Count()} num verts {verticesList.Count}");
+
 						switch (triangleMode)
 						{
 							case TriangleMode.FREE_VERTS:
