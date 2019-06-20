@@ -1,7 +1,7 @@
 # mipl-mesh-converter
 Converts MIPL/IDS generated .pfb and .iv meshes to .obj format.
 
-This repository includes a Dockerfile that will compile a Docker image containing [OpenSceneGraph](http://www.openscenegraph.org) with Performer plugin support.  This enables the use of the osgconv utility to convert .pfb and .iv meshes to other formats.  If you use osgconv to convert to .obj directly, the resulting meshes are pretty messy and won't load in some software.  So there is also C# code included that uses osgconv to convert to .osgx (OpenSceneGraph's xml format), parse out the vertices, normals, uv, and textures, and writes out a cleaner .obj file.
+This repository includes a Dockerfile that will compile a Docker image containing [OpenSceneGraph](http://www.openscenegraph.org) with Performer plugin support.  This enables the use of the osgconv utility to convert .pfb and .iv meshes to other formats.  If you use osgconv to convert to .obj directly, the resulting meshes are pretty messy and won't load in some software.  So I instead use osgconv to convert to .osgx (OpenSceneGraph's xml format), parse out the vertices, normals, uv, and textures, and write out a cleaner .obj file.
 
 ### Dependencies:
 You need to have these installed on your machine first:
