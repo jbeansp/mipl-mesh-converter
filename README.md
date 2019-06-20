@@ -11,10 +11,11 @@ This repository includes a Dockerfile that will compile a Docker image containin
 ### Usage:
 1. Clone this repository:<br>
 `git clone https://github.com/jbeansp/mipl-mesh-converter.git .`<br>
-2. Run:<br>
+2. Compile the Docker image:<br>
     `mipl-mesh-converter/bin/compile-docker`<br>
-    (This will take a long time, but only needs to be done once to compile the docker image)<br>
-3. Convert a MER or MSL .pfb or .iv mesg to .obj by running:<br>
+    This only needs to be done once.<br>
+3. Wait a long time for it to compile.  Maybe go get some coffee or something.<br>
+4. It's ready to go!  Convert a MER or MSL .pfb or .iv mesh to .obj by running:<br>
     `mipl-mesh-converter/bin/convert-mipl-mesh /path/to/mipl/mesh /output/directory`
 
 ### Notes:
