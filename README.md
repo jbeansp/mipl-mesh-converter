@@ -21,7 +21,7 @@ This repository includes a Dockerfile that will compile a Docker image containin
 * Texture images in .rgb format should be in the same directory as the input .pfb or .iv mesh.  The .rgb images will be converted to .png as part of the mesh conversion.
 * The mesh coordinates are left in SAE (x = north, y = east, z = nadir/down).  The origin of the coordinate frame is defined by the Site frame the rover was in when the imagery for the mesh was taken.  (The Site and Drive of the rover's position is included in the .pfb or .iv mesh's filename, according to MIPL's EDR filename convention.)
 
-### Some useful commands:
+### Some useful commands for debugging:
 * If the Docker container is running and you want to get inside it for some reason, you first need to know its id by running:<br>
 `docker container ls`  
 Note down the beginning of container hash.  Let's say it's 0d83jd98j3d.... for the following example commands.  Usually the first two characters of the hash are sufficient to identify it, so I'll use 0d below.<br>
