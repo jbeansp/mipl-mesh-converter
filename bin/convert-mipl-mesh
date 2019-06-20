@@ -56,7 +56,7 @@ if __name__ == '__main__':
 	dockerImage = "mipl-mesh-converter"
 	uid = os.getuid()
 	gid = os.getgid()
-	uidgid = uid + ":" + gid
+	uidgid = str(uid) + ":" + str(gid)
 	print("Processing %s, and writing obj to %s" % (miplMeshPath, outputDirectory))
 
 	command = ['docker', 'run', '--rm', '-it', '--user', uidgid, '--mount', inputMountString, '--mount', outputMountString, dockerImage, dockerInputPath, dockerOutputDirectory]
