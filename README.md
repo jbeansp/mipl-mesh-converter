@@ -18,6 +18,7 @@ This repository includes a Dockerfile that will compile a Docker image containin
     `mipl-mesh-converter/bin/convert-mipl-mesh </path/to/mipl/mesh> </output/directory>`
 
 ### Notes:
+.rgb texture files should be in the same directory as the input .pfb or .iv mesh.  The .rgb files will be converted to .png files, and will be referenced by the .obj's material file (.mtl).
 The mesh coordinates are left in SAE (x = north, y = east, z = nadir/down).  The origin of the coordinate frame is defined by the Site frame the rover was at when the imagery for the mesh was taken.  MIPL includes the Site and Drive of the rover's position in the mesh's filename.
 
 ### Some useful commands:
