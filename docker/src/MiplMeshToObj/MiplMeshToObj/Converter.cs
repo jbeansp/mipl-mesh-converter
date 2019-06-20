@@ -300,7 +300,7 @@ namespace MiplMeshToObj
 			}
 		}
 
-		private OsgGeometrySections GetOsgGeometrySections1(XElement root)
+		private OsgGeometrySections GetOsgGeometrySectionsLookingForExternalTextures(XElement root)
 		{
 			XElement matrixTransformElement = root.Element(osgMatrixTransformField);
 			if (matrixTransformElement == null)
@@ -316,7 +316,7 @@ namespace MiplMeshToObj
 			return osgGeometrySections;
 		}
 
-		private OsgGeometrySections GetOsgGeometrySections(XElement root)
+		private OsgGeometrySections GetOsgGeometrySectionsLookingForInternalTextures(XElement root)
 		{
 			OsgGeometrySections osgGeometrySections = new OsgGeometrySections();
 
@@ -399,11 +399,19 @@ namespace MiplMeshToObj
 				
 				XElement root = XElement.Load(inputOsgxPath);
 
-				OsgGeometrySections osgGeometrySections = GetOsgGeometrySections(root);
+				//Look for texture references outside of geometry first, this happens in cases other than MER HiRise.
+				OsgGeometrySections osgGeometrySections = GetOsgGeometrySectionsLookingForExternalTextures(root);
 
-				if (!osgGeometrySections.Success)
+				if (!osgGeometrySections.Success || osgGeometrySections.geometryDict.Count() == 0)
 				{
-					return MeshConversionResult.fail;
+					//Look for texture references inside of geometry
+					osgGeometrySections = GetOsgGeometrySectionsLookingForInternalTextures(root);
+
+					if (!osgGeometrySections.Success)
+					{
+						return MeshConversionResult.fail;
+					}
+
 				}
 
 				List<string> textureBasenames = osgGeometrySections.geometryDict.Keys.ToList();
