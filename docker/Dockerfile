@@ -38,7 +38,6 @@ RUN \
     && rm -rf /osg \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
-# make a 2nd stage, because it takes so long to compile the first stage.
 FROM converter-base AS converter
 
 WORKDIR /
