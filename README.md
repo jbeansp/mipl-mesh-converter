@@ -21,6 +21,7 @@ You need to have these installed on your machine first:
 
 ### Notes:
 * Texture images in .rgb format should be in the same directory as the input .pfb or .iv mesh.  The .rgb images will be converted to .png as part of the mesh conversion.
+* MER .pfb and .iv (maybe just some?) meshes have multiple level of details (LOD) within the mesh.  It's not clear to me how to separate the LODs accurately, so all vertices from all LODs are included in the final .obj file.  
 * The mesh coordinates are left in SAE (x = north, y = east, z = nadir/down).  The origin of the coordinate frame is defined by the Site frame the rover was in when the imagery for the mesh was taken.  (The Site and Drive of the rover's position is included in the .pfb or .iv mesh's filename, according to MIPL's EDR filename convention.)
 
 ### Some useful commands for debugging:
