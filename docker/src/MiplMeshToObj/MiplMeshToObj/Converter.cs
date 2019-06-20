@@ -79,39 +79,6 @@ namespace MiplMeshToObj
 
 
 
-		private async Task<MeshConversionResult> ConvertToObjAsync(string inputMeshPath, string outputDirectory, CancellationToken cancellationToken)
-		{
-
-			if (cancellationToken.IsCancellationRequested)
-				return MeshConversionResult.fail;
-
-			string basename = Path.GetFileNameWithoutExtension(inputMeshPath);
-			string objFilePath = Path.Combine(outputDirectory, basename + ".obj");
-			string mtlFilePath = Path.Combine(outputDirectory, basename + ".mtl");
-
-			string command = configuration.PfbToObj;
-			string args = $"{inputMeshPath} {objFilePath}";
-			var result = await RunExternalProcess.RunAsync(command, args, cancellationToken, printStdout: true, printStderr: true).ConfigureAwait(false);
-			if (!result.success)
-				return MeshConversionResult.fail;
-
-			//Make sure everything went smoothly
-			if (!File.Exists(objFilePath))
-			{
-				throw new FileNotFoundException(objFilePath, $"Error:  No obj file exists after attempted conversion to obj.  Command run: {command} {args}");
-			}
-
-			if (!File.Exists(mtlFilePath))
-			{
-				throw new FileNotFoundException(mtlFilePath, $"Error:  No mtl file exists after attempted conversion to obj.  Command run: {command} {args}");
-			}
-
-			Logger.Log("ConvertToObjAsync(): Done.");
-			Logger.Log($"Memory: { (GC.GetTotalMemory(true) / 1024) } KB");
-
-
-			return new MeshConversionResult(true, objFilePath);
-		}
 
 		private async Task<MeshConversionResult> ConvertToOsgxAsync(string inputMeshPath, string outputDirectory, CancellationToken cancellationToken)
 		{
