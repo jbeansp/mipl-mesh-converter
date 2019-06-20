@@ -1,7 +1,7 @@
 # mipl-mesh-converter
 Converts MIPL/IDS generated .pfb and .iv meshes to .obj format.
 
-This repository includes a Dockerfile that will compile a Docker image containing OpenSceneGraph with Performer plugin support.  This enables the use of the osgconv utility to convert .pfb and .iv meshes to other formats.  If you use osgconv to convert to .obj directly, the resulting meshes are pretty messy and won't load in some software.  So there is also C# code included that uses osgconv to convert to .osgx (OpenSceneGraph's xml format), parse out the vertices, normals, uv, and textures, and write out a cleaner .obj file.
+This repository includes a Dockerfile that will compile a Docker image containing OpenSceneGraph with Performer plugin support.  This enables the use of the osgconv utility to convert .pfb and .iv meshes to other formats.  If you use osgconv to convert to .obj directly, the resulting meshes are pretty messy and won't load in some software.  So there is also C# code included that uses osgconv to convert to .osgx (OpenSceneGraph's xml format), parse out the vertices, normals, uv, and textures, and writes out a cleaner .obj file.
 
 ### Dependencies:
 1. bash
@@ -19,7 +19,7 @@ This repository includes a Dockerfile that will compile a Docker image containin
 
 ### Notes:
 * Texture images in .rgb format should be in the same directory as the input .pfb or .iv mesh.  The .rgb images will be converted to .png as part of the mesh conversion.
-* The mesh coordinates are left in SAE (x = north, y = east, z = nadir/down).  The origin of the coordinate frame is defined by the Site frame the rover was in when the imagery for the mesh was taken.  The Site and Drive of the rover's position is included in the .pfb or .iv mesh's filename by MIPL's EDR filename convention.
+* The mesh coordinates are left in SAE (x = north, y = east, z = nadir/down).  The origin of the coordinate frame is defined by the Site frame the rover was in when the imagery for the mesh was taken.  (The Site and Drive of the rover's position is included in the .pfb or .iv mesh's filename, according to MIPL's EDR filename convention.)
 
 ### Some useful commands:
 If it's running and you want to get inside the container for some reason:<br>
