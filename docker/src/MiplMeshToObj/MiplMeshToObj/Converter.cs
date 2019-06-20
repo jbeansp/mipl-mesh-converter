@@ -29,9 +29,11 @@ namespace MiplMeshToObj
 
 		private Configuration configuration;
 
+		enum TriangleMode { TRIANGLE_STRIP, FREE_VERTS, SINGLE_QUAD };
+
 		//if the normals look like they are pointing inwards in the resulting mesh, try toggling this value.
-		private const bool ivOsgxFlipOrderForUnity = true;
-		private const bool pfbOsgxFlipOrderForUnity = false;
+		private const bool ivOsgxFlipOrder = true;
+		private const bool pfbOsgxFlipOrder = false;
 
 		public Converter(Configuration configuration)
 		{
@@ -587,23 +589,27 @@ namespace MiplMeshToObj
 							return MeshConversionResult.fail;
 						}
 
-						Vector3[] vArray = null;
+						Vector3[] vertices = null;
 						Vector3[] normals = null;
 						Vector2[] uvs = null;
-						int[] trianglesArray = null;
+						int[] triangles = null;
 
 
 
 						Logger.Log("getting triangle strip info");
 						//triangle strip info
-						bool weDontHaveStrips = false;
+						TriangleMode triangleMode = TriangleMode.FREE_VERTS;
+
+						//use hard coded values for quads.
+						//bool weDontHaveStrips = false;
 						int triangleStripCount = 0;
 						int[] triangleStripVertexCountArray = new int[] { };
+						//bool foundSingleQuad = false;
 						//see if we have strips or single triangles
 						if (geometry.Element("PrimitiveSetList") != null && geometry.Element("PrimitiveSetList").Element("DrawArraysLength") != null)
 						{
-
-							string[] triangleStripStrvec = 
+							triangleMode = TriangleMode.TRIANGLE_STRIP;
+							string[] triangleStripStrvec =
 								geometry
 								.Element("PrimitiveSetList")
 								.Element("DrawArraysLength")
@@ -623,6 +629,7 @@ namespace MiplMeshToObj
 						}
 						else if (geometry.Element("PrimitiveSetList") != null && geometry.Element("PrimitiveSetList").Element("osg--DrawArrayLengths") != null)
 						{
+							triangleMode = TriangleMode.TRIANGLE_STRIP;
 							string[] triangleStripStrvec =
 								geometry
 								.Element("PrimitiveSetList")
@@ -642,22 +649,22 @@ namespace MiplMeshToObj
 							}
 
 						}
-						else if (geometry.Element("PrimitiveSetList") != null 
+						else if (geometry.Element("PrimitiveSetList") != null
 							&& geometry.Element("PrimitiveSetList").Element("osg--DrawArrays") != null
 							&& geometry.Element("PrimitiveSetList").Element("osg--DrawArrays").Element("Mode") != null
 							&& geometry.Element("PrimitiveSetList").Element("osg--DrawArrays").Element("Mode").Attribute(attributeAttributeField).Value == "QUADS")
 						{
 							//This happens in the case where we have a single quad for a MER HiRIse mesh
-							triangleStripCount = 1;
-							triangleStripVertexCountArray = new int[triangleStripCount];
-							triangleStripVertexCountArray[0] = 4;
-							
+							//triangleStripCount = 1;
+							//triangleStripVertexCountArray = new int[triangleStripCount];
+							//triangleStripVertexCountArray[0] = 4;
+							triangleMode = TriangleMode.SINGLE_QUAD;
 						}
 						else
 						{
-							weDontHaveStrips = true;
+							triangleMode = TriangleMode.FREE_VERTS;
 						}
-						
+
 
 
 
@@ -668,19 +675,19 @@ namespace MiplMeshToObj
 
 						//There seem to be different kinds of osgx files.  Some have VertexData and others VertexArray, etc.
 						XAttribute vertexTextAttribute = null;
-						if (geometry.Element("VertexData") != null 
+						if (geometry.Element("VertexData") != null
 							&& geometry.Element("VertexData").Element("Array") != null
 							&& geometry.Element("VertexData").Element("Array").Element("ArrayID") != null)
 						{
 							vertexTextAttribute = geometry.Element("VertexData").Element("Array").Element("ArrayID").Attribute("text");
 						}
-						else if (geometry.Element("VertexArray") != null 
+						else if (geometry.Element("VertexArray") != null
 							&& geometry.Element("VertexArray").Element("osg--Vec3Array") != null
 							&& geometry.Element("VertexArray").Element("osg--Vec3Array").Element("vector") != null)
 						{
 							vertexTextAttribute = geometry.Element("VertexArray").Element("osg--Vec3Array").Element("vector").Attribute("text");
 						}
-						
+
 						if (vertexTextAttribute == null)
 						{
 							//no data here, continue
@@ -694,6 +701,12 @@ namespace MiplMeshToObj
 						}
 						Logger.Log("vertexStrvec first element is {0}, length is {1}", vertexStrvec[0], vertexStrvec.Length);
 						int numVertices = vertexStrvec.Length / 3;
+						if (triangleMode == TriangleMode.SINGLE_QUAD && numVertices != 4)
+						{
+							Logger.Error("This form of osgx file is unsupported.  Found QUAD type, and there are more than four vertices.  " +
+								"So far, this only handles single quads for MER HiRIse meshes.");
+							return MeshConversionResult.fail;
+						}
 						Vector3[] vertexArray = new Vector3[numVertices];
 
 						List<int> indicesList = new List<int>();
@@ -740,142 +753,155 @@ namespace MiplMeshToObj
 
 						Logger.Log("Done parsing vertex coordinates.");
 
-
-						if (weDontHaveStrips)
+						switch (triangleMode)
 						{
-							Logger.Log("Making triangles from vertices, not strips.");
-							//see if we have triangles listed more than once, and if so, remove duplicates
-							//also remove degenerates (triangles with 2 of the same vertex)
-							List<Triangle> uniqueTriangleStructList = new List<Triangle>();
-							for (int i = 0; i < trianglesList.Count - 2; i += 3)
-							{
-								Triangle t = new Triangle(trianglesList[i], trianglesList[i + 1], trianglesList[i + 2]);
-
-								uniqueTriangleStructList.Add(t);
-							}
-
-
-							//int[] trianglesArray;
-							int maxTriangle = 0;
-							if (uniqueTriangleStructList.Count * 3 < trianglesList.Count || ivOsgxFlipOrderForUnity)
-							{
-								Logger.Log("Found {0} duplicate and/or degenerate triangles", (trianglesList.Count / 3 - uniqueTriangleStructList.Count));
-
-								trianglesArray = new int[uniqueTriangleStructList.Count * 3];
-								int i = 0;
-								foreach (Triangle t in uniqueTriangleStructList)
+							case TriangleMode.FREE_VERTS:
 								{
-									if (ivOsgxFlipOrderForUnity)
+									Logger.Log("Making triangles from vertices, not strips.");
+									//see if we have triangles listed more than once, and if so, remove duplicates
+									//also remove degenerates (triangles with 2 of the same vertex)
+									List<Triangle> uniqueTriangleStructList = new List<Triangle>();
+									for (int i = 0; i < trianglesList.Count - 2; i += 3)
 									{
-										trianglesArray[i++] = t.v1;
-										trianglesArray[i++] = t.v3;
-										trianglesArray[i++] = t.v2;
+										Triangle t = new Triangle(trianglesList[i], trianglesList[i + 1], trianglesList[i + 2]);
+
+										uniqueTriangleStructList.Add(t);
+									}
+
+
+									//int[] trianglesArray;
+									int maxTriangle = 0;
+									if (uniqueTriangleStructList.Count * 3 < trianglesList.Count || ivOsgxFlipOrder)
+									{
+										Logger.Log("Found {0} duplicate and/or degenerate triangles", (trianglesList.Count / 3 - uniqueTriangleStructList.Count));
+
+										triangles = new int[uniqueTriangleStructList.Count * 3];
+										int i = 0;
+										foreach (Triangle t in uniqueTriangleStructList)
+										{
+											if (ivOsgxFlipOrder)
+											{
+												triangles[i++] = t.v1;
+												triangles[i++] = t.v3;
+												triangles[i++] = t.v2;
+											}
+											else
+											{
+												triangles[i++] = t.v1;
+												triangles[i++] = t.v2;
+												triangles[i++] = t.v3;
+											}
+
+											maxTriangle = maxTriangle < t.v1 ? t.v1 : maxTriangle;
+											maxTriangle = maxTriangle < t.v2 ? t.v2 : maxTriangle;
+											maxTriangle = maxTriangle < t.v3 ? t.v3 : maxTriangle;
+										}
+
 									}
 									else
 									{
-										trianglesArray[i++] = t.v1;
-										trianglesArray[i++] = t.v2;
-										trianglesArray[i++] = t.v3;
+										triangles = trianglesList.ToArray();
 									}
-
-									maxTriangle = maxTriangle < t.v1 ? t.v1 : maxTriangle;
-									maxTriangle = maxTriangle < t.v2 ? t.v2 : maxTriangle;
-									maxTriangle = maxTriangle < t.v3 ? t.v3 : maxTriangle;
-								}
-
-							}
-							else
-							{
-								trianglesArray = trianglesList.ToArray();
-							}
-							uniqueTriangleStructList = null;
+									uniqueTriangleStructList = null;
 
 
 
 
-							if (vertexArray.Length % 3 != 0)
-							{
-								Logger.Error($"There are not a multiple of 3 number of vertices listed in the osgx file, vertexArray.Length is {vertexArray.Length}. How should I make triangles?");
-							}
-
-							if (maxTriangle > verticesList.Count())
-							{
-								Logger.Error("triangles max vertex index {0}, number of vertices {1}", maxTriangle, verticesList.Count());
-							}
-
-
-							Logger.Log("Vertices parsed.  triangle  max vertex index {0}, number of vertices {1}", maxTriangle, verticesList.Count());
-						}
-						else
-						{
-							Logger.Log("Making triangles from strips.");
-							//Now make triangles
-							//construct triangles from triangle strip info
-							//not the usual strip definition...
-							//apparently each strip int value is a strip in itself. so a sequence of 3 3 3, etc means to take each successive
-							//triplet of the vertex array, and contruct a triangle out of it.  4 means do the same, but with the fourth
-							//vertex, use the previous 3 and 2 to make a second triangle.
-							// numtri = numstrips + (numverts - numstrips*3)  = numverts - 2*numStrips;
-							//reasoning:  first triangle uses 3 vertices.  all subsequence triangles use 1 additional vertex.
-							//so numStrips gives the first triangle, which has 3 vertices.  The remaining number of vertices
-							//all account for an additional triangle
-							int numTriangles = 3 * (numVertices - 2 * triangleStripCount);
-							int[] triangles = new int[numTriangles];
-							int vIndex = 0;
-							int triIndex = 0;
-							try
-							{
-								foreach (int ts in triangleStripVertexCountArray)
-								{
-									for (int vi = 0; vi < ts - 2; vi++)
+									if (vertexArray.Length % 3 != 0)
 									{
-										if (pfbOsgxFlipOrderForUnity)
-										{
-											//if odd triangle
-											if (vi % 2 > 0)
-											{
-												triangles[triIndex++] = vIndex + vi;
-												triangles[triIndex++] = vIndex + vi + 2;
-												triangles[triIndex++] = vIndex + vi + 1;
-											}
-											else
-											{
-												//even triangle, reverse first two indices
-												triangles[triIndex++] = vIndex + vi + 1;
-												triangles[triIndex++] = vIndex + vi + 2;
-												triangles[triIndex++] = vIndex + vi;
-											}
-										}
-										else
-										{
-											//if odd triangle
-											if (vi % 2 > 0)
-											{
-												triangles[triIndex++] = vIndex + vi;
-												triangles[triIndex++] = vIndex + vi + 1;
-												triangles[triIndex++] = vIndex + vi + 2;
-											}
-											else
-											{
-												//even triangle, reverse first two indices
-												triangles[triIndex++] = vIndex + vi + 1;
-												triangles[triIndex++] = vIndex + vi;
-												triangles[triIndex++] = vIndex + vi + 2;
-											}
-										}
-
+										Logger.Error($"There are not a multiple of 3 number of vertices listed in the osgx file, vertexArray.Length is {vertexArray.Length}. How should I make triangles?");
 									}
-									vIndex += ts;
+
+									if (maxTriangle > verticesList.Count())
+									{
+										Logger.Error("triangles max vertex index {0}, number of vertices {1}", maxTriangle, verticesList.Count());
+									}
+
+
+									Logger.Log("Vertices parsed.  triangle  max vertex index {0}, number of vertices {1}", maxTriangle, verticesList.Count());
+									break;
 								}
-							}
-							catch (Exception e)
-							{
-								Logger.Error("Caught exception: {0}", e);
-							}
-							Logger.Log("predicted num triangles {0}, actual num triangles {1}", numTriangles, triIndex);
+							case TriangleMode.TRIANGLE_STRIP:
+								{
+									Logger.Log("Making triangles from strips.");
+									//Now make triangles
+									//construct triangles from triangle strip info
+									//not the usual strip definition...
+									//apparently each strip int value is a strip in itself. so a sequence of 3 3 3, etc means to take each successive
+									//triplet of the vertex array, and contruct a triangle out of it.  4 means do the same, but with the fourth
+									//vertex, use the previous 3 and 2 to make a second triangle.
+									// numtri = numstrips + (numverts - numstrips*3)  = numverts - 2*numStrips;
+									//reasoning:  first triangle uses 3 vertices.  all subsequence triangles use 1 additional vertex.
+									//so numStrips gives the first triangle, which has 3 vertices.  The remaining number of vertices
+									//all account for an additional triangle
+									int numTriangles = 3 * (numVertices - 2 * triangleStripCount);
+									triangles = new int[numTriangles];
+									int vIndex = 0;
+									int triIndex = 0;
+									try
+									{
+										foreach (int ts in triangleStripVertexCountArray)
+										{
+											for (int vi = 0; vi < ts - 2; vi++)
+											{
+												if (pfbOsgxFlipOrder)
+												{
+													//if odd triangle
+													if (vi % 2 > 0)
+													{
+														triangles[triIndex++] = vIndex + vi;
+														triangles[triIndex++] = vIndex + vi + 2;
+														triangles[triIndex++] = vIndex + vi + 1;
+													}
+													else
+													{
+														//even triangle, reverse first two indices
+														triangles[triIndex++] = vIndex + vi + 1;
+														triangles[triIndex++] = vIndex + vi + 2;
+														triangles[triIndex++] = vIndex + vi;
+													}
+												}
+												else
+												{
+													//if odd triangle
+													if (vi % 2 > 0)
+													{
+														triangles[triIndex++] = vIndex + vi;
+														triangles[triIndex++] = vIndex + vi + 1;
+														triangles[triIndex++] = vIndex + vi + 2;
+													}
+													else
+													{
+														//even triangle, reverse first two indices
+														triangles[triIndex++] = vIndex + vi + 1;
+														triangles[triIndex++] = vIndex + vi;
+														triangles[triIndex++] = vIndex + vi + 2;
+													}
+												}
 
-							trianglesArray = triangles;
+											}
+											vIndex += ts;
+										}
+									}
+									catch (Exception e)
+									{
+										Logger.Error("Caught exception: {0}", e);
+									}
+									Logger.Log("predicted num triangles {0}, actual num triangles {1}", numTriangles, triIndex);
 
+									break;
+								}
+							case TriangleMode.SINGLE_QUAD:
+								{
+									triangles = new int[6];
+									triangles[0] = 1;
+									triangles[1] = 0;
+									triangles[2] = 2;
+									triangles[3] = 2;
+									triangles[4] = 0;
+									triangles[5] = 3;
+									break;
+								}
 						}
 
 						if (cancellationToken.IsCancellationRequested)
@@ -885,62 +911,78 @@ namespace MiplMeshToObj
 						}
 
 						//normals
-						string[] normalStrvec = new string[] { };
-						if (geometry.Element("NormalData") != null)
+
+						switch (triangleMode)
 						{
-							normalStrvec =
-								geometry
-								.Element("NormalData")
-								.Element("Array")
-								.Element("ArrayID")
-								.Attribute("text")
-								.Value
-								.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+							case TriangleMode.FREE_VERTS:
+							case TriangleMode.TRIANGLE_STRIP:
+								{
+									string[] normalStrvec = new string[] { };
+									if (geometry.Element("NormalData") != null)
+									{
+										normalStrvec =
+											geometry
+											.Element("NormalData")
+											.Element("Array")
+											.Element("ArrayID")
+											.Attribute("text")
+											.Value
+											.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+									}
+									else if (geometry.Element("NormalArray") != null)
+									{
+										normalStrvec =
+											geometry
+											.Element("NormalArray")
+											.Element("osg--Vec3Array")
+											.Element("vector")
+											.Attribute("text")
+											.Value
+											.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+									}
+									else
+									{
+										Logger.Error("Couldn't find NormalData or NormalArray section.");
+									}
+
+									if (normalStrvec.Length % 3 != 0)
+									{
+										Logger.Error("Normal data strvec length is not a multiple of 3");
+									}
+									else if (normalStrvec.Length != vertexStrvec.Length)
+									{
+										Logger.Error("normalStrvec.Length {0} is not equal to vertexStrvec.Length {1}", normalStrvec.Length, vertexStrvec.Length);
+									}
+
+
+									Vector3[] normalArray = new Vector3[numVertices];
+									for (int i = 0; i < normalStrvec.Length; i += 3)
+									{
+
+										float c1 = Convert.ToSingle(normalStrvec[i]);
+										float c2 = Convert.ToSingle(normalStrvec[i + 1]);
+										float c3 = Convert.ToSingle(normalStrvec[i + 2]);
+										normalArray[i / 3] = new Vector3(c1, c2, c3);//.SaeToUnityCoordinateSystem();
+									}
+
+
+									normals = new Vector3[verticesList.Count];
+									for (int i = 0; i < indicesList.Count; i++)
+									{
+										normals[i] = normalArray[indicesList[i]];
+									}
+									break;
+								}
+							case TriangleMode.SINGLE_QUAD:
+								{
+									normals = new Vector3[4];
+									for (int i = 0; i < normals.Length; i++)
+									{
+										normals[i] = new Vector3(0, 0, -1);
+									}
+									break;
+								}
 						}
-						else if (geometry.Element("NormalArray") != null)
-						{
-							normalStrvec =
-								geometry
-								.Element("NormalArray")
-								.Element("osg--Vec3Array")
-								.Element("vector")
-								.Attribute("text")
-								.Value
-								.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-						}
-						else
-						{
-							Logger.Error("Couldn't find NormalData or NormalArray section.");
-						}
-
-						if (normalStrvec.Length % 3 != 0)
-						{
-							Logger.Error("Normal data strvec length is not a multiple of 3");
-						}
-						else if (normalStrvec.Length != vertexStrvec.Length)
-						{
-							Logger.Error("normalStrvec.Length {0} is not equal to vertexStrvec.Length {1}", normalStrvec.Length, vertexStrvec.Length);
-						}
-
-
-						Vector3[] normalArray = new Vector3[numVertices];
-						for (int i = 0; i < normalStrvec.Length; i += 3)
-						{
-
-							float c1 = Convert.ToSingle(normalStrvec[i]);
-							float c2 = Convert.ToSingle(normalStrvec[i + 1]);
-							float c3 = Convert.ToSingle(normalStrvec[i + 2]);
-							normalArray[i / 3] = new Vector3(c1, c2, c3);//.SaeToUnityCoordinateSystem();
-						}
-
-
-						normals = new Vector3[verticesList.Count];
-						for (int i = 0; i < indicesList.Count; i++)
-						{
-							normals[i] = normalArray[indicesList[i]];
-						}
-
-
 						Logger.Log("Normals parsed.");
 
 
@@ -951,64 +993,80 @@ namespace MiplMeshToObj
 						}
 
 						//uv
-						string[] textureStrvec = new string[] { };
-						if (geometry.Element("TexCoordData") != null)
+						switch (triangleMode)
 						{
-							textureStrvec = 
-								geometry
-								.Element("TexCoordData")
-								.Element("Data")
-								.Element("Array")
-								.Element("ArrayID")
-								.Attribute("text")
-								.Value
-								.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-						}
-						else if (geometry.Element("TexCoordArrayList") != null)
-						{
-							textureStrvec =
-								geometry
-								.Element("TexCoordArrayList")
-								.Element("osg--Vec2Array")
-								.Element("vector")
-								.Attribute("text")
-								.Value
-								.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-						}
-						else
-						{
-							Logger.Error("Couldn't find TexCoordData or TexCoordArrayList section.");
-						}
+							case TriangleMode.FREE_VERTS:
+							case TriangleMode.TRIANGLE_STRIP:
+								{
+									string[] textureStrvec = new string[] { };
+									if (geometry.Element("TexCoordData") != null)
+									{
+										textureStrvec =
+											geometry
+											.Element("TexCoordData")
+											.Element("Data")
+											.Element("Array")
+											.Element("ArrayID")
+											.Attribute("text")
+											.Value
+											.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+									}
+									else if (geometry.Element("TexCoordArrayList") != null)
+									{
+										textureStrvec =
+											geometry
+											.Element("TexCoordArrayList")
+											.Element("osg--Vec2Array")
+											.Element("vector")
+											.Attribute("text")
+											.Value
+											.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+									}
+									else
+									{
+										Logger.Error("Couldn't find TexCoordData or TexCoordArrayList section.");
+									}
 
-						if (textureStrvec.Length % 2 != 0)
-						{
-							Logger.Error("Texture uv data strvec length is not a multiple of 2");
-						}
-						if (textureStrvec.Length / 2 != numVertices)
-						{
-							Logger.Error("Texture uv datalength is not the same as num vertices. texCoords: {0}, vertices {1}",
-								textureStrvec.Length / 2, numVertices);
-						}
-						Vector2[] uvArray = new Vector2[textureStrvec.Length / 2];
-						for (int i = 0; i < textureStrvec.Length; i += 2)
-						{
+									if (textureStrvec.Length % 2 != 0)
+									{
+										Logger.Error("Texture uv data strvec length is not a multiple of 2");
+									}
+									if (textureStrvec.Length / 2 != numVertices)
+									{
+										Logger.Error("Texture uv datalength is not the same as num vertices. texCoords: {0}, vertices {1}",
+											textureStrvec.Length / 2, numVertices);
+									}
+									Vector2[] uvArray = new Vector2[textureStrvec.Length / 2];
+									for (int i = 0; i < textureStrvec.Length; i += 2)
+									{
 
-							float c1 = Convert.ToSingle(textureStrvec[i]);
-							float c2 = Convert.ToSingle(textureStrvec[i + 1]);
-							uvArray[i / 2] = new Vector2(c1, c2);
-							//uvArray[i / 2] = new Vector2(c2, c1);
-						}
+										float c1 = Convert.ToSingle(textureStrvec[i]);
+										float c2 = Convert.ToSingle(textureStrvec[i + 1]);
+										uvArray[i / 2] = new Vector2(c1, c2);
+										//uvArray[i / 2] = new Vector2(c2, c1);
+									}
 
-						uvs = new Vector2[verticesList.Count];
-						for (int i = 0; i < indicesList.Count; i++)
-						{
-							uvs[i] = uvArray[indicesList[i]];
+									uvs = new Vector2[verticesList.Count];
+									for (int i = 0; i < indicesList.Count; i++)
+									{
+										uvs[i] = uvArray[indicesList[i]];
+									}
+									break;
+								}
+							case TriangleMode.SINGLE_QUAD:
+								{
+									uvs = new Vector2[4];
+									uvs[0] = new Vector2(1, 0);
+									uvs[1] = new Vector2(1, 1);
+									uvs[2] = new Vector2(0, 1);
+									uvs[3] = new Vector2(0, 0);
+									break;
+								}
 						}
-
 
 						Logger.Log("uv parsed.");
 
-						vArray = verticesList.ToArray();
+						vertices = verticesList.ToArray();
 
 						Logger.Log("Initialized Geometry section. currentNumVertices {0}, unique vertices {1}", numVertices, verticesList.Count);
 
@@ -1024,7 +1082,7 @@ namespace MiplMeshToObj
 						MeshImageTile meshImageTile;
 						if (textureBasenameToMeshSectionDict.TryGetValue(textureBasename, out meshImageTile))
 						{
-							meshImageTile.AddData(ref vArray, ref normals, ref uvs, ref trianglesArray);
+							meshImageTile.AddData(ref vertices, ref normals, ref uvs, ref triangles);
 						}
 						else
 						{
@@ -1032,6 +1090,7 @@ namespace MiplMeshToObj
 						}
 					}
 				}
+				
 
 
 				//foreach (XElement firstGroupElement in matrixTransformElement.Element("Children").Elements("osg--Group").ToArray())
