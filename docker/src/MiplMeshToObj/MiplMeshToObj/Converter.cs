@@ -338,6 +338,7 @@ namespace MiplMeshToObj
 				{
 					XAttribute attributeTest = textureList.First().Element("Image").Element("FileName").Attribute(attributeAttributeField);
 					string textureBasename = attributeTest.Value.Replace("&quot;", "").Replace("\"", "").TrimStart(new char[] { '_' });
+					textureBasename = Path.GetFileNameWithoutExtension(textureBasename);
 					Logger.Log($"Found texture {textureBasename}");
 					List<XElement> geometrySections;
 					if (!osgGeometrySections.geometryDict.TryGetValue(textureBasename, out geometrySections))
