@@ -37,14 +37,7 @@ namespace MiplMeshToObj
 						// Wait for a signal to be delivered
 						int index = UnixSignal.WaitAny(signals, -1);
 
-						Mono.Unix.Native.Signum signal = signals[index].Signum;
-
-						// Notify the main thread that a signal was received,
-						// you can use things like:
-						//    Application.Invoke () for Gtk#
-						//    Control.Invoke on Windows.Forms
-						//    Write to a pipe created with UnixPipes for server apps.
-						//    Use an AutoResetEvent
+						//Mono.Unix.Native.Signum signal = signals[index].Signum;
 
 						if (cancelEvent != null)
 						{
@@ -52,37 +45,9 @@ namespace MiplMeshToObj
 						}
 
 						return;
-						//// For example, this works with Gtk#
-						//Application.Invoke(delegate () { ReceivedSignal(signal); });
 					}
 				});
-			//Thread signal_thread = new Thread(delegate ()
-			//{
-			//	while (true)
-			//	{
-			//		// Wait for a signal to be delivered
-			//		int index = UnixSignal.WaitAny(signals, -1);
 
-			//		Mono.Unix.Native.Signum signal = signals[index].Signum;
-
-			//		// Notify the main thread that a signal was received,
-			//		// you can use things like:
-			//		//    Application.Invoke () for Gtk#
-			//		//    Control.Invoke on Windows.Forms
-			//		//    Write to a pipe created with UnixPipes for server apps.
-			//		//    Use an AutoResetEvent
-
-			//		if (cancelEvent != null)
-			//		{
-			//			cancelEvent(null, EventArgs.Empty);
-			//		}
-
-			//		return;
-			//		//// For example, this works with Gtk#
-			//		//Application.Invoke(delegate () { ReceivedSignal(signal); });
-			//	}
-			//});
-			//signal_thread.Start();
 		}
 	}
 

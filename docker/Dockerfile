@@ -4,7 +4,8 @@ WORKDIR /
 
 RUN \
 	apt update \
-	&& apt install -y --no-install-recommends curl apt-transport-https dirmngr gzip tar gnupg ca-certificates tzdata less psmisc git curl libstdc++ imagemagick xvfb \
+	&& apt install -y --no-install-recommends curl apt-transport-https dirmngr gzip tar gnupg ca-certificates \
+        tzdata less psmisc git curl libstdc++ imagemagick xvfb xauth \
 	&& apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF \
 	&& echo "deb https://download.mono-project.com/repo/debian stable-stretch main" | tee /etc/apt/sources.list.d/mono-official-stable.list \
 	&& apt update \
@@ -33,21 +34,16 @@ RUN \
     && make \
     && make install \
     && mkdir /usr/tmp \
+    && chmod a+rwx /usr/tmp \
     && rm -rf /osg \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
 # make a 2nd stage, because it takes so long to compile the first stage.
 FROM converter-base AS converter
 
-RUN \
-	apt update \
-	&& apt install -y --no-install-recommends xauth \
-    && chmod a+rwx /usr/tmp
-
 WORKDIR /
 
 COPY bin app
-COPY src temp/src
 
 ENTRYPOINT [ "mono", "--debug", "/app/monoexe/MiplMeshToObj.exe" ]
 CMD [ "/path/to/mipl_mesh_filename", "/directory/to/write/obj" ]
