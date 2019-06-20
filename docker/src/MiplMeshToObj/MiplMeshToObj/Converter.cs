@@ -623,9 +623,6 @@ namespace MiplMeshToObj
 						}
 						else if (geometry.Element("PrimitiveSetList") != null && geometry.Element("PrimitiveSetList").Element("osg--DrawArrayLengths") != null)
 						{
-							//if the element DrawArraysLength doesn't exist, DrawArrays is substituted, which lists single triangles
-							//triangleStripCount = 1;
-							//triangleStripVertexCountArray = new int[] { 3 };
 							string[] triangleStripStrvec =
 								geometry
 								.Element("PrimitiveSetList")
@@ -644,6 +641,17 @@ namespace MiplMeshToObj
 								triangleStripVertexCountArray[i] = Convert.ToInt32(triangleStripStrvec[i]);
 							}
 
+						}
+						else if (geometry.Element("PrimitiveSetList") != null 
+							&& geometry.Element("PrimitiveSetList").Element("osg--DrawArray") != null
+							&& geometry.Element("PrimitiveSetList").Element("osg--DrawArray").Element("Mode") != null
+							&& geometry.Element("PrimitiveSetList").Element("osg--DrawArray").Element("Mode").Attribute(attributeAttributeField).Value == "QUADS")
+						{
+							//This happens in the case where we have a single quad for a MER HiRIse mesh
+							triangleStripCount = 1;
+							triangleStripVertexCountArray = new int[triangleStripCount];
+							triangleStripVertexCountArray[0] = 4;
+							
 						}
 						else
 						{
@@ -706,9 +714,9 @@ namespace MiplMeshToObj
 
 							vertexArray[i / 3] = new Vector3(c1, c2, c3);//.SaeToUnityCoordinateSystem();
 
-							double hash = (double)c1;
-							hash = hash * 13 + c2;
-							hash = hash * 13 + c3;
+							//double hash = (double)c1;
+							//hash = hash * 13 + c2;
+							//hash = hash * 13 + c3;
 
 							////see if we already have this vertex.  This is time consuming for large vertexStrvec.Length!
 							//int indexof = -1;
@@ -803,7 +811,7 @@ namespace MiplMeshToObj
 							Logger.Log("Making triangles from strips.");
 							//Now make triangles
 							//construct triangles from triangle strip info
-							//not usual the strip definition...
+							//not the usual strip definition...
 							//apparently each strip int value is a strip in itself. so a sequence of 3 3 3, etc means to take each successive
 							//triplet of the vertex array, and contruct a triangle out of it.  4 means do the same, but with the fourth
 							//vertex, use the previous 3 and 2 to make a second triangle.
