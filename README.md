@@ -10,21 +10,20 @@ Dependencies:
 
 Usage:
 1. Clone this repository:<br>
-git clone https://github.com/jbeansp/mipl-mesh-converter.git .<br>
+`git clone https://github.com/jbeansp/mipl-mesh-converter.git .`<br>
 2. Run:<br>
-    mipl-mesh-converter/bin/compile-docker<br>
+    `mipl-mesh-converter/bin/compile-docker`<br>
     (this only needs to be done once to compile the docker image)<br>
-3. Convert a MER or MSL .pfb or .iv mesg to .obj by running:
-    mipl-mesh-converter/bin/convert-mipl-mesh </path/to/mipl/mesh> </output/directory> <--mer | --msl><br>
-    <br>
+3. Convert a MER or MSL .pfb or .iv mesg to .obj by running:<br>
+    `mipl-mesh-converter/bin/convert-mipl-mesh </path/to/mipl/mesh> </output/directory>`
 <br>
 <br>
 Useful commands:
   If it's running and you want to get inside the container for some reason:<br>
-  docker container ls  (then note the beginning of container hash, say it's 0d83jd98j3d....)<br>
-  docker exec -it 0d /bin/bash  (this will give you a bash prompt inside the running container)<br>
-  docker kill 0d  (will kill the container)<br>
-  docker run -it <br>
+  `docker container ls`  (then note the beginning of container hash, say it's 0d83jd98j3d....)<br>
+  `docker exec -it 0d /bin/bash`  (this will give you a bash prompt inside the running container)<br>
+  `docker kill 0d`  (will kill the container)<br>
+  `docker run -it `<br>
   
   
   
