@@ -31,13 +31,7 @@ namespace MiplMeshToObj
 		private const bool ivOsgxFlipOrder = true;
 		private const bool pfbOsgxFlipOrder = false;
 
-		public Converter(Configuration configuration)
-		{
-			this.configuration = configuration ?? throw new NullReferenceException("configuration is null");
-
-		}
-
-
+		
 		public struct MeshConversionResult
 		{
 			public readonly bool success;
@@ -51,6 +45,39 @@ namespace MiplMeshToObj
 
 			public static readonly MeshConversionResult fail = new MeshConversionResult(false, "");
 		}
+
+		private struct Triangle
+		{
+			public readonly int v1;
+			public readonly int v2;
+			public readonly int v3;
+
+			public bool IsDegenerate
+			{
+				get { return v1 == v2 || v2 == v3 || v1 == v3; }
+			}
+
+			public Triangle(int v1, int v2, int v3)
+			{
+				this.v1 = v1;
+				this.v2 = v2;
+				this.v3 = v3;
+			}
+
+			public override int GetHashCode()
+			{
+				return v1 * v2 * v3;
+			}
+		}
+
+
+		public Converter(Configuration configuration)
+		{
+			this.configuration = configuration ?? throw new NullReferenceException("configuration is null");
+
+		}
+
+
 
 		private async Task<MeshConversionResult> ConvertToObjAsync(string inputMeshPath, string outputDirectory, CancellationToken cancellationToken)
 		{
@@ -152,13 +179,23 @@ namespace MiplMeshToObj
 			return true;
 		}
 
-		const string childrenElementField = "Children";
-		const string osgGroupField = "osg--Group";
-		const string osgMatrixTransformField = "osg--MatrixTransform";
-		const string osgLodField = "osg--LOD";
-		const string osgGeometryField = "osg--Geometry";
-		const string nameElementField = "Name";
-		const string attributeAttributeField = "attribute";
+		private const string childrenElementField = "Children";
+		private const string osgGroupField = "osg--Group";
+		private const string osgMatrixTransformField = "osg--MatrixTransform";
+		private const string osgLodField = "osg--LOD";
+		private const string osgGeometryField = "osg--Geometry";
+		private const string nameElementField = "Name";
+		private const string attributeAttributeField = "attribute";
+
+		private class OsgGeometrySections
+		{
+			public bool Success { get; private set; } = true;
+			public readonly Dictionary<string, List<XElement>> geometryDict = new Dictionary<string, List<XElement>>();
+
+			public static readonly OsgGeometrySections fail = new OsgGeometrySections() { Success = false };
+		}
+
+
 		private IEnumerable<XElement> GetNextOsgGroups(XElement currentOsgGroup)
 		{
 
@@ -185,6 +222,7 @@ namespace MiplMeshToObj
 					}
 				}
 
+				//MSL: There are no osg--LOD elements.  MER: there are
 				var testOsgLod = childrenElement.Elements(osgLodField);
 				if (testOsgLod != null && testOsgLod.Count() > 0)
 				{
@@ -206,16 +244,6 @@ namespace MiplMeshToObj
 			return new XElement[] { };
 		}
 
-
-		private class OsgGeometrySections
-		{
-			public bool Success { get; private set; } = true;
-			public readonly Dictionary<string, List<XElement>> geometryDict = new Dictionary<string, List<XElement>>();
-
-			public static readonly OsgGeometrySections fail = new OsgGeometrySections() { Success = false };
-		}
-
-		
 		private bool HasGeometryDescendants(XElement osgGroup)
 		{
 			return osgGroup.Descendants(osgGeometryField).Count() > 0;
@@ -341,19 +369,14 @@ namespace MiplMeshToObj
 			string outputDirectory, 
 			CancellationToken cancellationToken)
 		{
-
-			//MSL: There are no osg--LOD elements.  MER: there are
-			//Vertices and normals are listed in order of faces, which makes them repeated in the list.
-			//to make triangles, I'll have to assign them to indices.
-
-
-			Logger.Log("ReadOsgxFile():  Beginning " + inputOsgxPath);
-
+		
 			if (cancellationToken.IsCancellationRequested)
 			{
 				Logger.Log("Cancellation requested.");
 				return MeshConversionResult.fail;
 			}
+
+			Logger.Log("ConvertOsgxToObjAsync():  Beginning " + inputOsgxPath);
 
 			//And also stop processing if we can't find our osgx file.
 			if (!File.Exists(inputOsgxPath))
@@ -450,16 +473,16 @@ namespace MiplMeshToObj
 						int[] triangles = null;
 
 
-
-						Logger.Log("getting triangle strip info");
-						//triangle strip info
+						//MER pfb's have triangle strips.
+						//MSL iv's have free verts
+						//MER HiRise have single quads
 						TriangleMode triangleMode = TriangleMode.FREE_VERTS;
 						int triangleStripCount = 0;
 						int[] triangleStripVertexCountArray = new int[] { };
-
 						if (geometry.Element("PrimitiveSetList") != null && geometry.Element("PrimitiveSetList").Element("DrawArraysLength") != null)
 						{
 							triangleMode = TriangleMode.TRIANGLE_STRIP;
+
 							string[] triangleStripStrvec =
 								geometry
 								.Element("PrimitiveSetList")
@@ -577,7 +600,7 @@ namespace MiplMeshToObj
 
 						}
 
-						Logger.Log("Done parsing vertex coordinates.");
+						Logger.Log("Done parsing vertices.");
 
 						switch (triangleMode)
 						{
@@ -892,8 +915,7 @@ namespace MiplMeshToObj
 							return MeshConversionResult.fail;
 						}
 
-						//Now that we've parsed everything we need for this geometry section, process it.
-						//							ProcessGeometry();
+						//Now that we've parsed everything we need for this geometry section, add it to the MeshImageTile for this texture.
 						MeshImageTile meshImageTile;
 						if (textureBasenameToMeshSectionDict.TryGetValue(textureBasename, out meshImageTile))
 						{
@@ -1039,9 +1061,6 @@ namespace MiplMeshToObj
 					Directory.CreateDirectory(outputDirectory);
 				}
 
-
-				//string[] rgbFiles = Directory.GetFiles(GetOpsTextureDirAbsolute(sol), opsTexturePattern);
-				//Ledger.Log("We found {0} rgbFiles in {1}", rgbFiles.Length, GetOpsTextureDirAbsolute(sol));
 				List<Task<bool>> taskList = new List<Task<bool>>();
 
 				//occasionally an obsolete version of a texture file is referenced in a mesh, and that obsolete version
@@ -1124,30 +1143,5 @@ namespace MiplMeshToObj
 			return true;
 		}
 
-
-		private struct Triangle
-		{
-			public int v1;
-			public int v2;
-			public int v3;
-
-			public bool IsDegenerate
-			{
-				get { return v1 == v2 || v2 == v3 || v1 == v3; }
-			}
-
-			public Triangle(int v1, int v2, int v3)
-			{
-				this.v1 = v1;
-				this.v2 = v2;
-				this.v3 = v3;
-			}
-
-
-			public override int GetHashCode()
-			{
-				return v1 * v2 * v3;
-			}
-		}
 	}
 }
