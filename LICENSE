@@ -1,6 +1,16 @@
+Performer Library License:
+#
+# OpenGL Performer 3.2(.x) for Linux "Demo Edition" Run-time license
+#
+# Use of this license is subject to the terms and conditions of
+# the OpenGL Performer 3.2 SGI End-User License Agreement
+#
+
+All other content is subject to:
+
 MIT License
 
-Copyright (c) 2019 jbeansp
+Copyright (c) 2019 Opscode LLC
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
