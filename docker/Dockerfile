@@ -41,7 +41,8 @@ FROM converter-base AS converter
 
 RUN \
 	apt update \
-	&& apt install -y --no-install-recommends xauth
+	&& apt install -y --no-install-recommends xauth \
+    && chmod a+rwx /usr/tmp
 
 WORKDIR /
 

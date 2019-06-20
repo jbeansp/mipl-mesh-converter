@@ -53,7 +53,7 @@ pfbFile=$1
 objFile=$2
 
 osgoptions=""
-timeout=70
+timeout=20
 
 #Note, the below doesn't help this error:
 #PF Fatal/Resource:             pfMalloc() Unable to allocate 560000 bytes from arena 0xa75ff000.
@@ -100,7 +100,7 @@ command="xvfb-run osgconv ${osgoptions} $pfbFile $objFile"
     clean_up_semaphores
     ${command} &
 id=$!
-for t in 0 1 2 3 4 5 6 7 8 9 ; do
+for t in {0..30} ; do
     sleep $timeout
     psout=$( ps -p ${id} | grep -vc "TIME CMD")
     #echo $( ps -p ${id})
