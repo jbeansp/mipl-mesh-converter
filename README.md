@@ -1,7 +1,7 @@
 # mipl-mesh-converter
 Converts MIPL/IDS generated .pfb and .iv meshes to .obj format.
 
-The docker image installs OpenSceneGraph with Performer plugin support.  This enables the use of the osgconv utility to convert .pfb meshes to other formats.  It also converts .iv meshes to .obj.  If you use osgconv to convert to .obj directly, the resulting meshes are pretty messy and won't load in some software.  So I convert to .osgx (OpenSceneGraph's xml format), parse out the vertices, normals, uv, and textures, and write out a cleaner .obj.
+This repository includes a Dockerfile that will compile a Docker image containing OpenSceneGraph with Performer plugin support.  This enables the use of the osgconv utility to convert .pfb and .iv meshes to other formats.  If you use osgconv to convert to .obj directly, the resulting meshes are pretty messy and won't load in some software.  So there is also C# code included that uses osgconv to convert to .osgx (OpenSceneGraph's xml format), parse out the vertices, normals, uv, and textures, and write out a cleaner .obj file.
 
 ### Dependencies:
 1. bash
@@ -22,10 +22,14 @@ The mesh coordinates are left in SAE (x = north, y = east, z = nadir/down).  The
 
 ### Some useful commands:
 If it's running and you want to get inside the container for some reason:<br>
-* `docker container ls`  (then note the beginning of container hash, say it's 0d83jd98j3d....)<br>
-* `docker exec -it 0d /bin/bash`  (this will give you a bash prompt inside the running container)<br>
-* `docker kill 0d`  (will kill the container)<br>
-* `docker run -it `<br>
+* `docker container ls`  
+Then note the beginning of container hash.  Let's say it's 0d83jd98j3d.... for the following example commands.  Usually the first two characters of the hash are sufficient to identify it, so I'll use 0d below.<br>
+* `docker exec -it 0d /bin/bash`  
+This will give you a bash prompt inside the running container.<br>
+* `docker kill 0d`  
+Will kill the container.<br>
+* `docker run -it --rm --entrypoint="" mipl-mesh-converter /bin/bash`  
+Get a terminal inside a container that isn't processing a mesh.<br>
   
   
   
