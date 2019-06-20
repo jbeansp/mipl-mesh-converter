@@ -643,9 +643,9 @@ namespace MiplMeshToObj
 
 						}
 						else if (geometry.Element("PrimitiveSetList") != null 
-							&& geometry.Element("PrimitiveSetList").Element("osg--DrawArray") != null
-							&& geometry.Element("PrimitiveSetList").Element("osg--DrawArray").Element("Mode") != null
-							&& geometry.Element("PrimitiveSetList").Element("osg--DrawArray").Element("Mode").Attribute(attributeAttributeField).Value == "QUADS")
+							&& geometry.Element("PrimitiveSetList").Element("osg--DrawArrays") != null
+							&& geometry.Element("PrimitiveSetList").Element("osg--DrawArrays").Element("Mode") != null
+							&& geometry.Element("PrimitiveSetList").Element("osg--DrawArrays").Element("Mode").Attribute(attributeAttributeField).Value == "QUADS")
 						{
 							//This happens in the case where we have a single quad for a MER HiRIse mesh
 							triangleStripCount = 1;
