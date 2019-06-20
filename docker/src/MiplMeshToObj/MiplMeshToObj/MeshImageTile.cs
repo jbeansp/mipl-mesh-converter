@@ -71,11 +71,6 @@ namespace MiplMeshToObj
 				throw new ArgumentException("vertexArray.Length != normalArray.Length");
 			}
 
-			//if (vertexArray.Length * 3 != triangleArray.Length)
-			//{
-			//	throw new ArgumentException("vertexArray.Length * 3 != triangleArray.Length");
-			//}
-
 			//triangles are indices of the vertex array.  Since we're going to append all these arrays,
 			//I need to adjust the triangle indices to point to the appended vertex indices
 			int[] adjustedTriangleArray = new int[triangleArray.Length];

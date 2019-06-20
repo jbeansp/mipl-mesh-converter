@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
 
 namespace MiplMeshToObj
 {
@@ -28,34 +29,16 @@ namespace MiplMeshToObj
 					Directory.CreateDirectory(outputDirectory);
 				}
 
-				string roverName = args[2].ToUpper();
-				IRover rover;
-				switch (roverName)
-				{
-					case "MER":
-						{
-							rover = new MerRover();
-							break;
-						}
-					case "MSL":
-						{
-							rover = new MslRover();
-							break;
-						}
-					default:
-						{
-							Logger.Error($"Rover not recognized: {roverName}");
-							return;
-						}
-				}
 
 				Configuration configuration = Configuration.GetConfiguration();
-
 				Converter converter = new Converter(configuration);
 
-				var inputInfo = new Converter.InputInfo(miplMeshPath, outputDirectory, rover);
+				CancellationTokenSource cts = new CancellationTokenSource();
+				UnixExitSignalMonitor unixExitSignalMonitor = new UnixExitSignalMonitor();
+				unixExitSignalMonitor.cancelEvent += (o, a) => { cts.Cancel(); };
+				var inputInfo = new Converter.InputInfo(miplMeshPath, outputDirectory);
 
-				converter.ProcessMeshAsync(inputInfo).GetAwaiter().GetResult();
+				converter.ProcessMeshAsync(inputInfo, cts.Token).GetAwaiter().GetResult();
 
 				Logger.Log("Done running MiplMeshToObj");
 			}
@@ -69,7 +52,7 @@ namespace MiplMeshToObj
 		{
 			Logger.Log(
 @"Usage:
-MiplMeshToObj <MIPL mesh path (iv or pfb file)> <output obj directory> <rover: MER | MSL>"
+MiplMeshToObj <MIPL mesh path (iv or pfb file)> <output obj directory>"
 			);
 		}
 

@@ -166,10 +166,5 @@ namespace MiplMeshToObj
 			return String.Format("( {0:0.00000}, {1:0.00000}, {2:0.00000} )", x, y, z);
 		}
 
-
-		public Vector3 SaeToUnityCoordinateSystem()
-		{
-			return new Vector3(y, -z, x);
-		}
 	}
 }

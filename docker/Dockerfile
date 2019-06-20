@@ -4,7 +4,7 @@ WORKDIR /
 
 RUN \
 	apt update \
-	&& apt install -y --no-install-recommends curl apt-transport-https dirmngr gzip tar gnupg ca-certificates tzdata less \
+	&& apt install -y --no-install-recommends curl apt-transport-https dirmngr gzip tar gnupg ca-certificates tzdata less psmisc git curl libstdc++ imagemagick xvfb \
 	&& apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF \
 	&& echo "deb https://download.mono-project.com/repo/debian stable-stretch main" | tee /etc/apt/sources.list.d/mono-official-stable.list \
 	&& apt update \
@@ -21,7 +21,6 @@ RUN \
     && echo "deb-src http://deb.debian.org/debian stretch main" | tee /etc/apt/sources.list.d/debian-sources.list \
     && apt update \
     && apt build-dep -y openscenegraph \
-    && apt install -y git ca-certificates curl libstdc++ imagemagick xvfb \
     && mkdir /osg \
     && cd /osg \
     && git clone https://github.com/openscenegraph/OpenSceneGraph.git \
@@ -40,22 +39,11 @@ RUN \
 # make a 2nd stage, because it takes so long to compile the first stage.
 FROM converter-base AS converter
 
-# ARG INPUT_DIR="/input"
-# ENV INPUT_DIR=${INPUT_MESH}
-# ARG OUTPUT_DIR="/output"
-# ENV OUTPUT_DIR=${OUTPUT_DIR}
 
 WORKDIR /
 
 COPY bin app
 COPY src temp/src
 
-RUN apt update && apt install -y psmisc
-# RUN \
-#     rm -Rf /app/monoexe \
-# 	&& mkdir -p /app/monoexe \
-# 	&& MONO_IOMAP=case msbuild /temp/src/MiplMeshToObj/MiplMeshToObj.sln /p:OutputPath=/app/monoexe \
-# 	&& rm -Rf /temp/src
-
 ENTRYPOINT [ "mono", "--debug", "/app/monoexe/MiplMeshToObj.exe" ]
-CMD [ "/path/to/mipl_mesh_filename", "/directory/to/write/obj", "rover: MSL | MER" ]
+CMD [ "/path/to/mipl_mesh_filename", "/directory/to/write/obj" ]

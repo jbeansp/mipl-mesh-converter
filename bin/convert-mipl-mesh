@@ -13,10 +13,6 @@ def parseArgv():
 
 	parser.add_argument("-d", "--output-directory", metavar=('OUTPUT_DIR'), required=True, help="The directory to write the obj file to.")
 
-	rovergroup = parser.add_mutually_exclusive_group(required=True)
-	rovergroup.add_argument("--mer", action="store_true")
-	rovergroup.add_argument("--msl", action="store_true")
-
 	args = parser.parse_args()
 
 	return args
@@ -46,14 +42,6 @@ if __name__ == '__main__':
 
 	outputDirectory = os.path.abspath(outputDirectory)
 
-	if args.mer:
-		rover = "MER"
-	elif args.msl:
-		rover = "MSL"
-	else:
-		print("Rover not recognized")
-		exit(1)
-
 	if not os.path.exists(outputDirectory):
 		os.mkdir(outputDirectory)
 
@@ -69,7 +57,7 @@ if __name__ == '__main__':
 
 	print("Processing %s, and writing obj to %s" % (miplMeshPath, outputDirectory))
 
-	command = ['docker', 'run', '--rm', '-it', '--mount', inputMountString, '--mount', outputMountString, dockerImage, dockerInputPath, dockerOutputDirectory, rover]
+	command = ['docker', 'run', '--rm', '-it', '--mount', inputMountString, '--mount', outputMountString, dockerImage, dockerInputPath, dockerOutputDirectory]
 
 	print subprocess.list2cmdline(command)
 	subprocess.call(command)

@@ -137,12 +137,9 @@
   <ItemGroup>
     <Compile Include="Configuration.cs" />
     <Compile Include="Converter.cs" />
-    <Compile Include="IRover.cs" />
     <Compile Include="Logger.cs" />
-    <Compile Include="MerRover.cs" />
     <Compile Include="MeshImageTile.cs" />
     <Compile Include="MeshImporter.cs" />
-    <Compile Include="MslRover.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Rect.cs" />
