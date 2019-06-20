@@ -6,7 +6,6 @@ namespace MiplMeshToObj
 {
 	class Vector4
 	{
-		public const float kEpsilon = 1E-05f;
 		public double x;
 		public double y;
 		public double z;

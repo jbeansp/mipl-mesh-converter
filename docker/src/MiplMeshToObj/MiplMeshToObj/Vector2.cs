@@ -5,7 +5,6 @@ namespace MiplMeshToObj
 {
 	public struct Vector2
 	{
-		public const double kEpsilon = 1E-05d;
 		public double x;
 		public double y;
 

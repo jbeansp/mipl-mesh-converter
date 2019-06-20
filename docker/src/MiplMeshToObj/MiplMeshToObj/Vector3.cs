@@ -5,7 +5,6 @@ namespace MiplMeshToObj
 {
 	public struct Vector3
 	{
-		public const float kEpsilon = 1E-05f;
 		public double x;
 		public double y;
 		public double z;
@@ -162,7 +161,6 @@ namespace MiplMeshToObj
 
 		public override string ToString()
 		{
-			//return "(" + this.x + " - " + this.y + " - " + this.z + ")";
 			return String.Format("( {0:0.00000}, {1:0.00000}, {2:0.00000} )", x, y, z);
 		}
 
