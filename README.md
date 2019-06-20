@@ -22,7 +22,7 @@ You need to have these installed on your machine first:
 ### Notes:
 * Texture images in .rgb format should be in the same directory as the input .pfb or .iv mesh.  The .rgb images will be converted to .png as part of the mesh conversion.
 * MER .pfb and .iv meshes have multiple level of details (LOD) within the mesh.  I'm not sure if the lower resolution LODs survive the conversion to .osgx.  The LOD levels in the .osgx file occur at the same xml tree depth per texture, and all have different x,y,z center values. So it's not clear to me if there are multiple LODs present, or how to separate the LODs if they do exist, so all vertices from all LOD sections are included in the final .obj file.  
-* The mesh coordinates are left in SAE (x = north, y = east, z = nadir/down).  The origin of the coordinate frame is defined by the Site frame the rover was in when the imagery for the mesh was taken.  (The Site and Drive of the rover's position is included in the .pfb or .iv mesh's filename, according to MIPL's EDR filename convention.)
+* The mesh coordinates are in SAE (x = north, y = east, z = nadir/down) in units of meters.  The origin of the coordinate frame is defined by the Site frame the rover was in when the imagery for the mesh was taken.  (The Site and Drive of the rover's position is included in the .pfb or .iv mesh's filename, according to MIPL's EDR filename convention.)
 
 ### Some useful commands for debugging:
 * If the Docker container is running and you want to get inside it for some reason, you first need to know its id by running:<br>
