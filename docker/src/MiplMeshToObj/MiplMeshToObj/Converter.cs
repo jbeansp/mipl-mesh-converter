@@ -298,7 +298,7 @@ namespace MiplMeshToObj
 			}
 		}
 
-		private OsgGeometrySections GetOsgGeometrySections(XElement root)
+		private OsgGeometrySections GetOsgGeometrySections1(XElement root)
 		{
 			XElement matrixTransformElement = root.Element(osgMatrixTransformField);
 			if (matrixTransformElement == null)
@@ -310,6 +310,45 @@ namespace MiplMeshToObj
 			OsgGeometrySections osgGeometrySections = new OsgGeometrySections();
 
 			GetGeometryRecursive(matrixTransformElement, ref osgGeometrySections);
+
+			return osgGeometrySections;
+		}
+
+		private OsgGeometrySections GetOsgGeometrySections(XElement root)
+		{
+			OsgGeometrySections osgGeometrySections = new OsgGeometrySections();
+
+			foreach(var geometry in root.Descendants(osgGeometryField))
+			{
+				var textureList = geometry.Descendants("osg--Texture2D");
+				int textureCount = textureList.Count();
+				if (textureCount == 0)
+				{
+					Logger.Error("No texture in this geometry section.");
+					continue;
+				}
+				if (textureCount > 1)
+				{
+					Logger.Error("This geometry section has more than one texture.");
+					continue;
+				}
+
+				if (textureList.First().Element("Image") != null 
+					&& textureList.First().Element("Image").Element("FileName") != null)
+				{
+					XAttribute attributeTest = textureList.First().Element("Image").Element("FileName").Attribute(attributeAttributeField);
+					string textureBasename = attributeTest.Value.Replace("&quot;", "").Replace("\"", "").TrimStart(new char[] { '_' });
+					Logger.Log($"Found texture {textureBasename}");
+					List<XElement> geometrySections;
+					if (!osgGeometrySections.geometryDict.TryGetValue(textureBasename, out geometrySections))
+					{
+						geometrySections = new List<XElement>();
+						osgGeometrySections.geometryDict.Add(textureBasename, geometrySections);
+					}
+					geometrySections.Add(geometry);
+				}
+					
+			}
 
 			return osgGeometrySections;
 		}
