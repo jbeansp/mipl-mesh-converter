@@ -10,7 +10,6 @@ namespace MiplMeshToObj
 		private const string configFilename = "config.json";
 		private const string defaultAppPath = "/app";
 
-		public string PfbToObj { get; private set; }
 		public string PfbToOsgx { get; private set; }
 		public string ConvertRgb { get; private set; }
 
@@ -38,7 +37,6 @@ namespace MiplMeshToObj
 		private Configuration()
 		{
 			//set some reasonable default values
-			PfbToObj = Path.Combine(defaultAppPath, "pfb2Obj");
 			PfbToOsgx = Path.Combine(defaultAppPath, "pfb2osgx");
 			ConvertRgb = "/usr/bin/convert";
 		}

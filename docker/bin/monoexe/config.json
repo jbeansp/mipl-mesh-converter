@@ -1,5 +1,4 @@
 {
-    "PfbToObj": "/app/pfb2Obj",
     "PfbToOsgx": "/app/pfb2osgx",
     "ConvertRgb": "/usr/bin/convert"
   }  
