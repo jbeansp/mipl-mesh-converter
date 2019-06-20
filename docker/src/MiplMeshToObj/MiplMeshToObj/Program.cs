@@ -10,7 +10,7 @@ namespace MiplMeshToObj
 		{
 			try
 			{
-				if (args.Length < 3 || args[0] == "--help" || args[0] == "-h")
+				if (args.Length < 2 || args[0] == "--help" || args[0] == "-h")
 				{
 					PrintUsage();
 					return;
