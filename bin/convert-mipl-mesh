@@ -4,7 +4,7 @@ import os
 import sys
 import argparse
 import subprocess
-
+import getpass
 
 def parseArgv():
 	parser = argparse.ArgumentParser(description="Convert a MIPL .pfb or .iv mesh for MER or MSL to .obj format.")
@@ -54,9 +54,13 @@ if __name__ == '__main__':
 	outputMountString = "src=" + outputDirectory + ",target=" + dockerOutputDirectory + ",type=bind"
 	dockerInputPath = os.path.join(dockerInputDirectory, miplMeshFilename)
 	dockerImage = "mipl-mesh-converter"
-	uid = os.getuid()
-	gid = os.getgid()
-	uidgid = str(uid) + ":" + str(gid)
+	uidgid = ""
+	if platform.system() == "Windows":
+		uidgid = getpass.getuser()
+	else:
+		uid = os.getuid()
+		gid = os.getgid()
+		uidgid = str(uid) + ":" + str(gid)
 	print("Processing %s, and writing obj to %s" % (miplMeshPath, outputDirectory))
 
 	command = ['docker', 'run', '--rm', '-it', '--user', uidgid, '--mount', inputMountString, '--mount', outputMountString, dockerImage, dockerInputPath, dockerOutputDirectory]
