@@ -194,7 +194,20 @@ namespace MiplMeshToObj
 				//found a osg--LOD layer between osg--Groups.  
 				foreach (var lod in testOsgLod)
 				{
-					osgGroups.AddRange(GetNextOsgGroups(lod));
+					//only return first group in an LOD
+					var testLodChildrenElements = lod.Elements(childrenElementField);
+					if (testLodChildrenElements != null)
+					{
+						foreach(var c in testLodChildrenElements)
+						{
+							var testLodOsgGroups = c.Elements(osgGroupField);
+							if (testLodOsgGroups != null && testLodOsgGroups.Count() > 0)
+							{
+								osgGroups.Add(testLodOsgGroups.First());
+							}
+						}
+					}
+					//osgGroups.AddRange(GetNextOsgGroups(lod));
 				}
 			}
 
