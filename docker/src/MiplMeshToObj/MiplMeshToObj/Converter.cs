@@ -174,41 +174,79 @@ namespace MiplMeshToObj
 			}
 
 			//skip matrix elements and LOD elements
+			List<XElement> osgGroups = new List<XElement>();
+			var testOsgMatrix = childrenElement.Elements(osgMatrixTransformField);
+			if (testOsgMatrix != null && testOsgMatrix.Count() > 0)
+			{
+				Logger.Log("Found {0} osgMatrixTransform elements", testOsgMatrix.Count());
+				//found a osg--MatrixTransform layer between osg--Groups.  
+				foreach (var osgMatrix in testOsgMatrix)
+				{
+					osgGroups.AddRange(GetNextOsgGroups(osgMatrix));
+				}
+			}
+
+			//MSL: There are no osg--LOD elements.  MER: there are
+			var testOsgLod = childrenElement.Elements(osgLodField);
+			if (testOsgLod != null && testOsgLod.Count() > 0)
+			{
+				Logger.Log("Found {0} osgLOD elements", testOsgLod.Count());
+				//found a osg--LOD layer between osg--Groups.  
+				foreach (var lod in testOsgLod)
+				{
+					osgGroups.AddRange(GetNextOsgGroups(lod));
+				}
+			}
+
+
 			var testOsgGroup = childrenElement.Elements(osgGroupField);
-			if ((testOsgGroup == null || testOsgGroup.Count() == 0))
+			if (testOsgGroup != null && testOsgGroup.Count() > 0)
 			{
-				List<XElement> osgGroups = new List<XElement>();
-				var testOsgMatrix = childrenElement.Elements(osgMatrixTransformField);
-				if (testOsgMatrix != null && testOsgMatrix.Count() > 0)
-				{
-					Logger.Log("Found {0} osgMatrixTransform elements", testOsgMatrix.Count());
-					//found a osg--MatrixTransform layer between osg--Groups.  
-					foreach(var osgMatrix in testOsgMatrix)
-					{
-						osgGroups.AddRange(GetNextOsgGroups(osgMatrix));
-					}
-				}
-
-				//MSL: There are no osg--LOD elements.  MER: there are
-				var testOsgLod = childrenElement.Elements(osgLodField);
-				if (testOsgLod != null && testOsgLod.Count() > 0)
-				{
-					Logger.Log("Found {0} osgLOD elements", testOsgLod.Count());
-					//found a osg--LOD layer between osg--Groups.  
-					foreach (var lod in testOsgLod)
-					{
-						osgGroups.AddRange(GetNextOsgGroups(lod));
-					}
-				}
-
-				return osgGroups;
-			}
-			else if (testOsgGroup != null)
-			{
-				return testOsgGroup;
+				Logger.Log("Found {0} osgGroup elements", testOsgGroup.Count());
+				osgGroups.AddRange(testOsgGroup);
+				//found a osg--LOD layer between osg--Groups.  
+				//foreach (var g in testOsgGroup)
+				//{
+				//	osgGroups.AddRange(GetNextOsgGroups(g));
+				//}
 			}
 
-			return new XElement[] { };
+			return osgGroups;
+
+			//if (testOsgGroup == null || testOsgGroup.Count() == 0)
+			//{
+			//	List<XElement> osgGroups = new List<XElement>();
+			//	var testOsgMatrix = childrenElement.Elements(osgMatrixTransformField);
+			//	if (testOsgMatrix != null && testOsgMatrix.Count() > 0)
+			//	{
+			//		Logger.Log("Found {0} osgMatrixTransform elements", testOsgMatrix.Count());
+			//		//found a osg--MatrixTransform layer between osg--Groups.  
+			//		foreach(var osgMatrix in testOsgMatrix)
+			//		{
+			//			osgGroups.AddRange(GetNextOsgGroups(osgMatrix));
+			//		}
+			//	}
+
+			//	//MSL: There are no osg--LOD elements.  MER: there are
+			//	var testOsgLod = childrenElement.Elements(osgLodField);
+			//	if (testOsgLod != null && testOsgLod.Count() > 0)
+			//	{
+			//		Logger.Log("Found {0} osgLOD elements", testOsgLod.Count());
+			//		//found a osg--LOD layer between osg--Groups.  
+			//		foreach (var lod in testOsgLod)
+			//		{
+			//			osgGroups.AddRange(GetNextOsgGroups(lod));
+			//		}
+			//	}
+
+			//	return osgGroups;
+			//}
+			//else if (testOsgGroup != null)
+			//{
+			//	return testOsgGroup;
+			//}
+
+			//return new XElement[] { };
 		}
 
 		private bool HasGeometryDescendants(XElement osgGroup)
@@ -450,6 +488,7 @@ namespace MiplMeshToObj
 						{
 							triangleMode = TriangleMode.TRIANGLE_STRIP;
 
+							//Old Openscenegraph OSGX spec
 							string[] triangleStripStrvec =
 								geometry
 								.Element("PrimitiveSetList")
@@ -457,7 +496,7 @@ namespace MiplMeshToObj
 								.Attribute("text")
 								.Value
 								.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-							Logger.Log("triangle strip count {0}", triangleStripStrvec.Length);
+							//Logger.Log("triangle strip count {0}", triangleStripStrvec.Length);
 
 							triangleStripCount = triangleStripStrvec.Length;
 							triangleStripVertexCountArray = new int[triangleStripCount];
@@ -470,6 +509,8 @@ namespace MiplMeshToObj
 						else if (geometry.Element("PrimitiveSetList") != null && geometry.Element("PrimitiveSetList").Element("osg--DrawArrayLengths") != null)
 						{
 							triangleMode = TriangleMode.TRIANGLE_STRIP;
+
+							//newer openscenegraph OSGX spec
 							string[] triangleStripStrvec =
 								geometry
 								.Element("PrimitiveSetList")
@@ -478,7 +519,7 @@ namespace MiplMeshToObj
 								.Attribute("text")
 								.Value
 								.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-							Logger.Log("triangle strip count {0}", triangleStripStrvec.Length);
+							//Logger.Log("triangle strip count {0}", triangleStripStrvec.Length);
 
 							triangleStripCount = triangleStripStrvec.Length;
 							triangleStripVertexCountArray = new int[triangleStripCount];
@@ -595,7 +636,9 @@ namespace MiplMeshToObj
 									int maxTriangle = 0;
 									if (uniqueTriangleStructList.Count * 3 < trianglesList.Count || ivOsgxFlipOrder)
 									{
-										Logger.Log("Found {0} duplicate and/or degenerate triangles", (trianglesList.Count / 3 - uniqueTriangleStructList.Count));
+										int duplicateCount = trianglesList.Count / 3 - uniqueTriangleStructList.Count;
+										if (duplicateCount > 0)
+											Logger.Log("Found {0} duplicate and/or degenerate triangles", duplicateCount);
 
 										triangles = new int[uniqueTriangleStructList.Count * 3];
 										int i = 0;
@@ -709,7 +752,8 @@ namespace MiplMeshToObj
 									{
 										Logger.Error("Caught exception: {0}", e);
 									}
-									Logger.Log("predicted num triangles {0}, actual num triangles {1}", numTriangles, triIndex);
+									if (numTriangles != triIndex)
+										Logger.Error("predicted num triangles {0}, actual num triangles {1}", numTriangles, triIndex);
 
 									break;
 								}
@@ -773,18 +817,32 @@ namespace MiplMeshToObj
 									}
 									else if (normalStrvec.Length != vertexStrvec.Length)
 									{
+										if (normalStrvec.Length == 3)
+										{
+
+										}
+
 										Logger.Error("normalStrvec.Length {0} is not equal to vertexStrvec.Length {1}", normalStrvec.Length, vertexStrvec.Length);
 									}
 
 
 									normals = new Vector3[numVertices];
-									for (int i = 0; i < normalStrvec.Length; i += 3)
+									for (int i = 0; i < vertexStrvec.Length; i += 3)
 									{
 
-										float c1 = Convert.ToSingle(normalStrvec[i]);
-										float c2 = Convert.ToSingle(normalStrvec[i + 1]);
-										float c3 = Convert.ToSingle(normalStrvec[i + 2]);
-										normals[i / 3] = new Vector3(c1, c2, c3);//.SaeToUnityCoordinateSystem();
+										//sometimes if there is a single triangle, we'll have one normal for all three verts.
+										//if a single normal, I'll assign to all verts.
+										if (i < normalStrvec.Length)
+										{
+											float c1 = Convert.ToSingle(normalStrvec[i]);
+											float c2 = Convert.ToSingle(normalStrvec[i + 1]);
+											float c3 = Convert.ToSingle(normalStrvec[i + 2]);
+											normals[i / 3] = new Vector3(c1, c2, c3);//.SaeToUnityCoordinateSystem();
+										}
+										else if (normalStrvec.Length >= 3 && i > 2)
+										{
+											normals[i / 3] = normals[0];
+										}
 									}
 
 									break;
@@ -879,7 +937,7 @@ namespace MiplMeshToObj
 
 						vertices = verticesList.ToArray();
 
-						Logger.Log("Initialized Geometry section. currentNumVertices {0}, unique vertices {1}", numVertices, verticesList.Count);
+						//Logger.Log("Initialized Geometry section. currentNumVertices {0}, unique vertices {1}", numVertices, verticesList.Count);
 
 
 						if (cancellationToken.IsCancellationRequested)
@@ -908,7 +966,7 @@ namespace MiplMeshToObj
 				string mtlPath = Path.Combine(outputDirectory, mtlFilename);
 				WriteObj(meshImageTiles, objPath, mtlPath);
 
-				Logger.Log($"Wrote: {objPath}");
+				Logger.Log($"Wrote: {Path.GetFileName(objPath)}");
 				return new MeshConversionResult(true, objPath);
 
 			}
