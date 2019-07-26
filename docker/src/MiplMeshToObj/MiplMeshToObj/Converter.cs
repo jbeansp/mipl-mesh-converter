@@ -194,7 +194,7 @@ namespace MiplMeshToObj
 				//found a osg--LOD layer between osg--Groups.  
 				foreach (var lod in testOsgLod)
 				{
-					//only return first group in an LOD
+					
 					var testLodChildrenElements = lod.Elements(childrenElementField);
 					if (testLodChildrenElements != null)
 					{
@@ -203,11 +203,11 @@ namespace MiplMeshToObj
 							var testLodOsgGroups = c.Elements(osgGroupField);
 							if (testLodOsgGroups != null && testLodOsgGroups.Count() > 0)
 							{
+								//only return first group in an LOD
 								osgGroups.Add(testLodOsgGroups.First());
 							}
 						}
 					}
-					//osgGroups.AddRange(GetNextOsgGroups(lod));
 				}
 			}
 
@@ -217,49 +217,9 @@ namespace MiplMeshToObj
 			{
 				Logger.Log("Found {0} osgGroup elements", testOsgGroup.Count());
 				osgGroups.AddRange(testOsgGroup);
-				//found a osg--LOD layer between osg--Groups.  
-				//foreach (var g in testOsgGroup)
-				//{
-				//	osgGroups.AddRange(GetNextOsgGroups(g));
-				//}
 			}
 
 			return osgGroups;
-
-			//if (testOsgGroup == null || testOsgGroup.Count() == 0)
-			//{
-			//	List<XElement> osgGroups = new List<XElement>();
-			//	var testOsgMatrix = childrenElement.Elements(osgMatrixTransformField);
-			//	if (testOsgMatrix != null && testOsgMatrix.Count() > 0)
-			//	{
-			//		Logger.Log("Found {0} osgMatrixTransform elements", testOsgMatrix.Count());
-			//		//found a osg--MatrixTransform layer between osg--Groups.  
-			//		foreach(var osgMatrix in testOsgMatrix)
-			//		{
-			//			osgGroups.AddRange(GetNextOsgGroups(osgMatrix));
-			//		}
-			//	}
-
-			//	//MSL: There are no osg--LOD elements.  MER: there are
-			//	var testOsgLod = childrenElement.Elements(osgLodField);
-			//	if (testOsgLod != null && testOsgLod.Count() > 0)
-			//	{
-			//		Logger.Log("Found {0} osgLOD elements", testOsgLod.Count());
-			//		//found a osg--LOD layer between osg--Groups.  
-			//		foreach (var lod in testOsgLod)
-			//		{
-			//			osgGroups.AddRange(GetNextOsgGroups(lod));
-			//		}
-			//	}
-
-			//	return osgGroups;
-			//}
-			//else if (testOsgGroup != null)
-			//{
-			//	return testOsgGroup;
-			//}
-
-			//return new XElement[] { };
 		}
 
 		private bool HasGeometryDescendants(XElement osgGroup)
